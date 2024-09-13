@@ -9,25 +9,16 @@
 #' @param show_progress A logical indicating whether to show a progress bar.
 #' @param export A list of objects to export to the workers.
 #' @param ... Additional arguments to pass to \code{what}.
-#' @importFrom compiler cmpfun
-#' @importFrom parallel makeCluster detectCores
-#' @importFrom doSNOW registerDoSNOW
-#' @importFrom foreach %dopar% %do%
-#' @importFrom snow stopCluster
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#' @importFrom base as.numeric
-#' @importFrom base list
-#' @importFrom base unlist
-#' @importFrom base do.call
-#' @importFrom base identical
-#' @importFrom base length
-#' @importFrom base floor
-#' @importFrom base match.arg
-#' 
+#' @export 
 #' @returns A list of results.
 #' @examples
-#' add(1, 1)
-#' add(10, 1)
+#' 
+#' # Sequential
+#' print(misc::parfor(function(x) x^2, 1:10))
+#' 
+#' # Parallel
+#' print(misc::parfor(function(x) x^2, 1:10, cl = 2))
+#' 
 parfor <- function(what,
                    args,
                    cl = NULL,

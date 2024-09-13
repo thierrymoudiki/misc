@@ -42,6 +42,11 @@ A list of results.
 Sequential or parallel for loop.
 }
 \examples{
-add(1, 1)
-add(10, 1)
+
+# Sequential
+print(misc::parfor(function(x) x^2, 1:10))
+
+# Parallel
+print(misc::parfor(function(x) x^2, 1:10, cl = 2))
+
 }

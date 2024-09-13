@@ -50,6 +50,32 @@ create: setwd ## create a new package in current directory
 docs: clean setwd ## generate docs		
 	Rscript -e "devtools::document('.')"
 
+docskeleton: setwd ## create a documentation skeleton for a funtion
+	@bash -c ' \
+	R_DIR="./R"; \
+	if [ ! -d "$$R_DIR" ]; then \
+		echo "Error: Directory $$R_DIR does not exist."; \
+		exit 1; \
+	fi; \
+	echo "Available R files in $$R_DIR:"; \
+	ls -1 "$$R_DIR"/*.R 2>/dev/null || { echo "No R files found in $$R_DIR"; exit 1; }; \
+	read -p "Enter the R file name (without path): " R_FILE_NAME; \
+	R_FILE="$$R_DIR/$$R_FILE_NAME"; \
+	if [ ! -f "$$R_FILE" ]; then \
+		echo "Error: File $$R_FILE does not exist."; \
+		exit 1; \
+	fi; \
+	read -p "Enter the function name: " FUNCTION_NAME; \
+	read -p "Enter the function description: " FUNCTION_DESCRIPTION; \
+	COMMENT="#'\'' $$FUNCTION_DESCRIPTION\n#'\''\n#'\'' @param x A number.\n#'\'' @param y A number.\n#'\'' @returns A numeric vector.\n#'\'' @examples\n#'\'' $$FUNCTION_NAME(1, 1)\n#'\'' $$FUNCTION_NAME(10, 1)"; \
+	ESCAPED_COMMENT=$$(printf "%s\n" "$$COMMENT" | sed -e '\''s/[]\/$*.^[]/\\&/g'\''); \
+	if sed -i "/$$FUNCTION_NAME <- function/i $$ESCAPED_COMMENT" "$$R_FILE"; then \
+		echo "Comment inserted successfully into $$R_FILE"; \
+	else \
+		echo "Error: Failed to insert comment. Make sure the function exists in the file."; \
+	fi \
+	'
+
 getwd: ## get current directory
 	Rscript -e "getwd()"
 

@@ -1,9 +1,30 @@
-#' Add together two numbers
+#' Sequential or parallel for loop.
 #' 
-#' @param x A number.
-#' @param y A number.
-#' @returns A numeric vector.
-#' @export
+#' @param what A function.
+#' @param args A list of arguments.
+#' @param cl Number of cores to use. If \code{NULL}, the loop will be sequential.
+#' @param combine A function to combine the results.
+#' @param errorhandling A character string specifying how to handle errors. Possible values are \code{"stop"}, \code{"remove"}, and \code{"pass"}.
+#' @param verbose A logical indicating whether to print progress.
+#' @param show_progress A logical indicating whether to show a progress bar.
+#' @param export A list of objects to export to the workers.
+#' @param ... Additional arguments to pass to \code{what}.
+#' @importFrom compiler cmpfun
+#' @importFrom parallel makeCluster detectCores
+#' @importFrom doSNOW registerDoSNOW
+#' @importFrom foreach %dopar% %do%
+#' @importFrom snow stopCluster
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#' @importFrom base as.numeric
+#' @importFrom base list
+#' @importFrom base unlist
+#' @importFrom base do.call
+#' @importFrom base identical
+#' @importFrom base length
+#' @importFrom base floor
+#' @importFrom base match.arg
+#' 
+#' @returns A list of results.
 #' @examples
 #' add(1, 1)
 #' add(10, 1)

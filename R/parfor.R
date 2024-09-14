@@ -80,10 +80,8 @@ parfor <- function(what,
       utils::setTxtProgressBar(pb, i)
     }
     
-    res <- do.call(what = what,
+    base::do.call(what = what,
                    args = c(list(args[i]), ...))
-    
-    as.numeric(res)
   }
   
   if (show_progress)

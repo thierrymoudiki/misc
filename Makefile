@@ -68,8 +68,17 @@ help: ## print menu with all options
 load: clean setwd ## load all (when developing the package)
 	Rscript -e "devtools::load_all('.')"
 
-render: ## run R markdown file in /vignettes, open rendered HTML file in the browser
-	@read -p "Enter the name of the Rmd file (without extension): " filename; \
+render: ## run R markdown file in /vignettes, open rendered HTML (2nd)
+	@files=$$(ls -1 ./vignettes/*.Rmd | sort); \
+	i=0; \
+	echo "Available Rmd files:"; \
+	for file in $$files; do \
+		echo "$$i: $$(basename $$file .Rmd)"; \
+		i=$$((i+1)); \
+	done; \
+	read -p "Enter the number of the Rmd file to render: " filenum; \
+	filename=$$(echo $$files | cut -d' ' -f$$((filenum+1))); \
+	filename=$$(basename $$filename .Rmd); \
 	Rscript -e "rmarkdown::render(paste0('./vignettes/', '$$filename', '.Rmd'))"; \
 	python3 -c "$$BROWSER_PYSCRIPT" "$$filename.html"
 

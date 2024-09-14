@@ -21,7 +21,7 @@ parfor(
 
 \item{args}{A list of arguments.}
 
-\item{cl}{Number of cores to use. If \code{NULL}, the loop will be sequential.}
+\item{cl}{Number of cores to use. If \code{NULL}, the loop will be sequential. It -1, the number of cores will be detected automatically.}
 
 \item{combine}{A function to combine the results.}
 
@@ -33,7 +33,7 @@ parfor(
 
 \item{export}{A list of objects to export to the workers.}
 
-\item{...}{Additional arguments to pass to \code{what} for \code{\link{foreach::foreach}}.}
+\item{...}{Additional arguments to pass to \code{what} for \code{\link{foreach::foreach}} (excludind \code{.combine}, \code{.errorhandling}, \code{.options.snow}, \code{.verbose}, and \code{.export}).}
 }
 \value{
 A list of results.

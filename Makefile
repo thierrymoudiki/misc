@@ -33,7 +33,8 @@ build: setwd ## build package
 
 buildsite: setwd ## create a website for the package
 	Rscript -e "pkgdown::build_site('.')"
-
+	cp -rf docs/* ../../Pro_Website/Techtonique.github.io/misc
+	
 check: clean setwd ## check package
 	Rscript -e "try(devtools::check('.'), silent=FALSE)"
 

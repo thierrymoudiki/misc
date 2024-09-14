@@ -2,13 +2,13 @@
 #' 
 #' @param what A function.
 #' @param args A list of arguments.
-#' @param cl Number of cores to use. If \code{NULL}, the loop will be sequential.
+#' @param cl Number of cores to use. If \code{NULL}, the loop will be sequential. It -1, the number of cores will be detected automatically.
 #' @param combine A function to combine the results.
 #' @param errorhandling A character string specifying how to handle errors. Possible values are \code{"stop"}, \code{"remove"}, and \code{"pass"}.
 #' @param verbose A logical indicating whether to print progress.
 #' @param show_progress A logical indicating whether to show a progress bar.
 #' @param export A list of objects to export to the workers.
-#' @param ... Additional arguments to pass to \code{what}.
+#' @param ... Additional arguments to pass to \code{what} for \code{\link{foreach::foreach}} (excludind \code{.combine}, \code{.errorhandling}, \code{.options.snow}, \code{.verbose}, and \code{.export}).
 #' @export 
 #' @returns A list of results.
 #' @examples
@@ -31,8 +31,7 @@ parfor <- function(what,
                    export = NULL,
                    ...)
 {
-  errorhandling <- match.arg(errorhandling)
-  what <- compiler::cmpfun(what)
+  errorhandling <- match.arg(errorhandling)  
   
   n_iter <- length(args)
   
@@ -73,7 +72,8 @@ parfor <- function(what,
     .errorhandling = errorhandling,
     .options.snow = opts,
     .verbose = verbose,
-    .export = export
+    .export = export,
+    ... 
   ) %op% {
     if (identical(show_progress, TRUE))
     {

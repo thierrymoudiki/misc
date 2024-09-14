@@ -33,7 +33,7 @@ parfor(
 
 \item{export}{A list of objects to export to the workers.}
 
-\item{...}{Additional arguments to pass to \code{what}.}
+\item{...}{Additional arguments to pass to \code{what} for \code{\link{foreach::foreach}}.}
 }
 \value{
 A list of results.

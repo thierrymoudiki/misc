@@ -1,4 +1,4 @@
-.PHONY: build buildsite check clean coverage docs docskeleton getwd initialize install load render setwd start test usegit
+.PHONY: build buildsite check clean coverage docs getwd initialize install installcranpkg installgithubpkg installedpkgs load removepkg render setwd start test usegit
 .DEFAULT_GOAL := help
 
 # The directory where R files are stored
@@ -33,10 +33,14 @@ build: setwd ## build package
 
 buildsite: setwd ## create a website for the package
 	Rscript -e "pkgdown::build_site('.')"
-	cp -rf docs/* ../../Pro_Website/Techtonique.github.io/misc
 	
-check: clean setwd ## check package
-	Rscript -e "try(devtools::check('.'), silent=FALSE)"
+
+check: clean setwd ## check package 
+	@read -p "Enter options (e.g: --no-tests --no-examples) or leave empty: " pckgcheckoptions; \
+	if [ -z "$$pckgcheckoptions" ]; then \
+		Rscript -e "try(devtools::check('.'), silent=TRUE)" && exit 0; \
+	fi; \
+	Rscript -e "try(devtools::check('.', args=base::strsplit('$$pckgcheckoptions', ' ')[[1]]), silent=TRUE)";
 
 clean: ## remove all build, and artifacts
 	rm -f .Rhistory
@@ -57,11 +61,30 @@ docs: clean setwd ## generate docs
 getwd: ## get current directory
 	Rscript -e "getwd()"
 
-install: clean setwd ## install package
+install: clean setwd ## install current package
 	Rscript -e "try(devtools::install('.'), silent = FALSE)"
 
+installcranpkg: setwd ## install a package
+	@read -p "Enter the name of package to be installed: " pckg; \
+	if [ -z "$$pckg" ]; then \
+		echo "Package name cannot be empty."; \
+		exit 1; \
+	fi; \
+	Rscript -e "utils::install.packages('$$pckg', repos='https://cloud.r-project.org')";
+
+installgithubpkg: setwd ## install a package from GitHub ('repository/pkgname')
+	@read -p "Enter the name of package to be installed ('repository/pkgname'): " pckg; \
+	if [ -z "$$pckg" ]; then \
+		echo "Package name cannot be empty."; \
+		exit 1; \
+	fi; \
+	Rscript -e "devtools::install_github('$$pckg')";
+
+installedpkgs: ## list of installed packages
+	Rscript -e "utils::installed.packages()[,c(10, 16)]"
+
 initialize: setwd ## initialize: install packages devtools, usethis, pkgdown and rmarkdown
-	Rscript -e "utils::install.packages(c('devtools', 'usethis', 'pkgdown', 'rmarkdown'), repos='https://cloud.r-project.org')"
+	Rscript -e "utils::install.packages(c('devtools', 'remotes', 'roxygen2', 'usethis', 'pkgdown', 'rmarkdown'), repos='https://cloud.r-project.org')"
 
 help: ## print menu with all options
 	@python3 -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
@@ -69,7 +92,16 @@ help: ## print menu with all options
 load: clean setwd ## load all (when developing the package)
 	Rscript -e "devtools::load_all('.')"
 
-render: ## run R markdown file in /vignettes, open rendered HTML (2nd)
+removepkg: ## remove package
+	@read -p "Enter the name of package to be removed: " pckg; \
+	if [ -z "$$pckg" ]; then \
+		echo "Package name cannot be empty."; \
+		exit 1; \
+	fi; \
+	Rscript -e "utils::remove.packages('$$pckg')"; \
+	Rscript -e "base::unlink(paste0(.libPaths()[1], '/$$pckg'), recursive = TRUE, force = TRUE)"
+
+render: ## run R markdown file in /vignettes, open rendered HTML
 	@files=$$(ls -1 ./vignettes/*.Rmd | sort); \
 	i=0; \
 	echo "Available Rmd files:"; \

@@ -2,7 +2,7 @@
 % Please edit documentation in R/winkler_score.R
 \name{winkler_score}
 \alias{winkler_score}
-\title{Winkler score}
+\title{Winkler score for probabilistic forecasts}
 \usage{
 winkler_score(actual, lower, upper, level = 95, scale = FALSE)
 }
@@ -21,7 +21,7 @@ winkler_score(actual, lower, upper, level = 95, scale = FALSE)
 numeric score
 }
 \description{
-Winkler score
+Winkler score for probabilistic forecasts
 }
 \examples{
 

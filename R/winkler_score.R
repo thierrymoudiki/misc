@@ -19,18 +19,13 @@
 #' 
 winkler_score <- function(actual, lower, upper, level = 95, scale = FALSE) {
   alpha <- 1 - level / 100
-  lt <- lower
-  ut <- upper
-  n_points <- length(actual)
-  diff_lt <- lt - actual
-  diff_bounds <- ut - lt
-  diff_ut <- actual - ut
+  diff_bounds <- upper - lower
   score <-
-    diff_bounds + (2 / alpha) * (pmax(diff_lt, 0) + pmax(diff_ut, 0))
+    diff_bounds + (2 / alpha) * (pmax(lower - actual, 0) + pmax(actual - upper, 0))
   if (!scale)
   {
     return(mean(score))
   } else {
-    return(mean(score/diff_bounds))
+    return(mean(1 - score/diff_bounds))
   }
 }

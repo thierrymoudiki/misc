@@ -1,5 +1,7 @@
 # misc
 
+[![misc status badge](https://techtonique.r-universe.dev/badges/misc)](https://techtonique.r-universe.dev/misc) [![Documentation](https://img.shields.io/badge/documentation-is_here-green)](https://techtonique.github.io/misc/index.html)
+
 ## Description
 
 An R package containing powerful functions that I use frequently.

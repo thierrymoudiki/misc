@@ -1,15 +1,17 @@
 #' @export
-calibmodel <- function(X, y, workhorse=stats::lm, lambda=0.1, seed=123) {
-  set.seed(seed)  
-  n_train <- floor(0.5 * nrow(X))
-  y_mean <- mean(y)
-  y <- y - y_mean
-  train_idx <- sample(nrow(X), size=n_train)  
-  train_set <- X[train_idx, ]
-  cal_set <- X[-train_idx, ]
-  y_train <- y[train_idx]
-  y_cal <- y[-train_idx]
-  
+calibmodel <- function(X, y, workhorse=stats::lm, lambda=0.1, 
+ method = c("splitconformal", "block-bootstrap", "surrogate", "kde", "bootstrap"),
+level=95, seed=123) {
+    method <- match.arg(method)
+    set.seed(seed)  
+    n_train <- floor(0.5 * nrow(X))
+    y_mean <- mean(y)
+    y <- y - y_mean
+    train_idx <- sample(nrow(X), size=n_train)  
+    train_set <- X[train_idx, ]
+    cal_set <- X[-train_idx, ]
+    y_train <- y[train_idx]
+    y_cal <- y[-train_idx]  
   # If workhorse is lm or glm, use ridge regression with augmented matrices
   if (identical(workhorse, stats::lm) || identical(workhorse, stats::glm)) {
     # Create augmented matrices for training set
@@ -47,7 +49,6 @@ calibmodel <- function(X, y, workhorse=stats::lm, lambda=0.1, seed=123) {
       model_cal <- workhorse(X = as.matrix(cal_set), y = y_cal)
     }
   }
-  
   # Predict on calibration set
   pred_cal <- try(predict(model_train, newdata=cal_set, interval="prediction"), silent=TRUE)
   if (inherits(pred_cal, "try-error") || any(is.nan(pred_cal))) {
@@ -55,19 +56,14 @@ calibmodel <- function(X, y, workhorse=stats::lm, lambda=0.1, seed=123) {
     pred_fit <- as.vector(cal_set %*% model_train$coefficients)
     pred_cal <- matrix(0, nrow=length(pred_fit), ncol=3)
     colnames(pred_cal) <- c("fit", "lwr", "upr")
-    pred_cal[,"fit"] <- pred_fit
-    sigma <- sqrt(mean(model_train$residuals^2))
-    pred_cal[,"lwr"] <- pred_fit - 2 * sigma
-    pred_cal[,"upr"] <- pred_fit + 2 * sigma
-  }
-  
+    pred_cal[,"fit"] <- pred_fit    
+  }  
   # Calculate calibrated residuals
-  calibrated_residuals <- list(
-    lower = y_cal - pred_cal[,"lwr"],
-    upper = y_cal - pred_cal[,"upr"]
-  )
+  calibrated_residuals <- y_cal - pred_cal[,"fit"]
   model_cal$calibrated_residuals <- calibrated_residuals
   model_cal$y_mean <- y_mean
+  model_cal$level <- level
+  model_cal$method <- method
   class(model_cal) <- c("calibmodel", "lm")
   return(model_cal)
 }
@@ -79,18 +75,23 @@ predict.calibmodel <- function(object, newdata, interval="prediction", ...) {
   if (!is.data.frame(newdata)) {
     newdata <- as.data.frame(newdata)
     colnames(newdata) <- colnames(object$model)[-1]  # Exclude response column name
-  }
-  
+  }  
   # Standard prediction
   pred <- NextMethod("predict", object, newdata=newdata, interval=interval, ...)
   pred <- pred + object$y_mean
   # If prediction interval is requested and calibrated residuals exist
-  if (interval == "prediction" && !is.null(object$calibrated_residuals)) {
-    # Adjust prediction intervals
-    mean_lower_res <- mean(object$calibrated_residuals$lower, na.rm=TRUE)
-    mean_upper_res <- mean(object$calibrated_residuals$upper, na.rm=TRUE)    
-    pred[,"lwr"] <- pred[,"lwr"] + mean_lower_res + object$y_mean
-    pred[,"upr"] <- pred[,"upr"] + mean_upper_res + object$y_mean
+  if (interval == "prediction" && !is.null(object$calibrated_residuals)) {    
+    if (object$method == "splitconformal") {
+        absolute_residuals <- abs(object$calibrated_residuals)
+        qt_abs_res <- quantile(absolute_residuals, object$level/100)
+        pred[,"lwr"] <- pred[,"fit"] - qt_abs_res
+        pred[,"upr"] <- pred[,"fit"] + qt_abs_res
+    } else {
+      absolute_residuals <- abs(object$calibrated_residuals)
+      qt_abs_res <- quantile(absolute_residuals, object$level/100)
+      pred[,"lwr"] <- pred[,"fit"] - qt_abs_res
+      pred[,"upr"] <- pred[,"fit"] + qt_abs_res
+    }
   }  
   return(pred)
 }

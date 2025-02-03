@@ -30,18 +30,20 @@ lm_model <- lm(mpg ~ ., data = train_data)
 
 # Fit calibrated model 
 ```{r}
-calib_model <- misc::calibmodel(X = as.matrix(train_data[,-1]), y = train_data$mpg)
+(calib_model <- misc::calibmodel(X = as.matrix(train_data[,-1]), y = train_data$mpg))
+print(summary(calib_model))
+print(confint(calib_model))
 ```
 
 # Make predictions on test set
-```{r}
+```{r eval=TRUE}
 lm_pred <- predict(lm_model, newdata = test_data, interval = "prediction")
 calib_pred <- predict(calib_model, newdata = as.matrix(test_data[,-1]), interval = "prediction")
 ```
 
 
 # Compare predictions
-```{r}
+```{r eval=TRUE}
 results <- data.frame(
   Actual = test_data$mpg,
   LM_Pred = lm_pred[,"fit"],

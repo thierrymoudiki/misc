@@ -1,5 +1,3 @@
-export(caliblm)
-export(caliblm.formula)
 export(predict.calibmodel)
 export(KL_divergence_hist)
 export(debug_print)

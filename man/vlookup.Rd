@@ -16,7 +16,7 @@ vlookup(this, df, key, value)
 \item{value}{The column to return}
 }
 \value{
-The value in the \code{value} column corresponding to the \code{key} column
+The value in the `value` column corresponding to the `key` column
 }
 \description{
 A simple implementation similar to the VLOOKUP function in Excel.

@@ -11,40 +11,42 @@ vignette: >
 library(misc)
 ```
 
-# Load mtcars dataset
+# Example 1: MPG Prediction (mtcars dataset)
+
+## Load and prepare data
 ```{r}
 data(mtcars)
-```
 
-# Split data into training and test sets
-```{r}
-set.seed(123)
-train_idx <- sample(nrow(mtcars), size = floor(0.7 * nrow(mtcars)))
+set.seed(1243)
+train_idx <- sample(nrow(mtcars), size = floor(0.75 * nrow(mtcars)))
 train_data <- mtcars[train_idx, ]
 test_data <- mtcars[-train_idx, ]
-
-# Fit regular linear model
-```{r}
-lm_model <- lm(mpg ~ ., data = train_data)
-print(summary(lm_model))
-print(confint(lm_model))
 ```
 
-# Fit calibrated model 
+## Fit models
 ```{r}
-(calib_model <- misc::calibmodel(X = as.matrix(train_data[,-1]), y = train_data$mpg))
+# Fit regular linear model
+start <- proc.time()[3]
+lm_model <- lm(mpg ~ ., data = train_data)
+print(proc.time()[3] - start)
+print(summary(lm_model))
+print(confint(lm_model))
+
+# Fit calibrated model 
+start <- proc.time()[3]
+calib_model <- misc::calibmodel(X = as.matrix(train_data[,-1]), y = train_data$mpg)
+print(proc.time()[3] - start)
 print(summary(calib_model))
 print(confint(calib_model))
 ```
 
-# Make predictions on test set
+## Make predictions
 ```{r eval=TRUE}
 lm_pred <- predict(lm_model, newdata = test_data, interval = "prediction")
 calib_pred <- predict(calib_model, newdata = as.matrix(test_data[,-1]), interval = "prediction")
 ```
 
-
-# Compare predictions
+## Compare predictions
 ```{r eval=TRUE, fig.width=7.5}
 results <- data.frame(
   Actual = test_data$mpg,
@@ -60,15 +62,20 @@ results <- data.frame(
 print("Prediction Intervals Comparison:")
 print(results)
 
-# Calculate coverage (% of actual values within prediction intervals)
+# Calculate coverage and Winkler scores
 lm_coverage <- mean(test_data$mpg >= results$LM_Lower & 
                    test_data$mpg <= results$LM_Upper)
 calib_coverage <- mean(test_data$mpg >= results$Calib_Lower & 
                       test_data$mpg <= results$Calib_Upper)
 
-print(sprintf("\nPrediction interval coverage:"))
-print(sprintf("Linear Model: %.1f%%", 100 * lm_coverage))
-print(sprintf("Calibrated Model: %.1f%%", 100 * calib_coverage))
+lm_winkler <- misc::winkler_score(test_data$mpg, results$LM_Lower, results$LM_Upper)
+calib_winkler <- misc::winkler_score(test_data$mpg, results$Calib_Lower, results$Calib_Upper)
+
+print(sprintf("\nPrediction interval metrics:"))
+print(sprintf("Linear Model: %.1f%% coverage, %.3f Winkler score", 
+              100 * lm_coverage, mean(lm_winkler)))
+print(sprintf("Calibrated Model: %.1f%% coverage, %.3f Winkler score", 
+              100 * calib_coverage, mean(calib_winkler)))
 
 # Set common y-axis limits for both plots
 y_limits <- range(c(results$LM_Lower, results$LM_Upper,
@@ -101,5 +108,116 @@ polygon(c(results$Actual[x_ordered], rev(results$Actual[x_ordered])),
         col=rgb(0, 0, 1, 0.2), border=NA)
 points(results$Actual, results$Calib_Pred)  # Replot points over shading
 abline(0, 1, col="red", lty=2)  # Add diagonal line
+```
+
+# Example 2: House Price Prediction (Boston Housing dataset)
+
+## Load and prepare data
+```{r}
+library(MASS)
+data(Boston)
+
+set.seed(1243)
+train_idx_boston <- sample(nrow(Boston), size = floor(0.8 * nrow(Boston)))
+train_data_boston <- Boston[train_idx_boston, ]
+test_data_boston <- Boston[-train_idx_boston, ]
+```
+
+## Fit models
+```{r}
+# Fit regular linear model
+start <- proc.time()[3]
+lm_model_boston <- lm(medv ~ ., data = train_data_boston)
+print(proc.time()[3] - start)
+print(summary(lm_model_boston))
+print(confint(lm_model_boston))
+
+# Fit calibrated model
+start <- proc.time()[3]
+calib_model_boston <- misc::calibmodel(
+  X = as.matrix(train_data_boston[, -which(names(train_data_boston) == "medv")]),
+  y = train_data_boston$medv
+)
+print(proc.time()[3] - start)
+print(summary(calib_model_boston))
+print(confint(calib_model_boston))
+```
+
+## Make predictions
+```{r}
+lm_pred_boston <- predict(lm_model_boston, newdata = test_data_boston, interval = "prediction")
+calib_pred_boston <- predict(
+  calib_model_boston, 
+  newdata = as.matrix(test_data_boston[, -which(names(test_data_boston) == "medv")]), 
+  interval = "prediction"
+)
+```
+
+## Compare predictions
+```{r eval=TRUE, fig.width=7.5}
+results_boston <- data.frame(
+  Actual = test_data_boston$medv,
+  LM_Pred = lm_pred_boston[,"fit"],
+  LM_Lower = lm_pred_boston[,"lwr"],
+  LM_Upper = lm_pred_boston[,"upr"],
+  Calib_Pred = calib_pred_boston[,"fit"],
+  Calib_Lower = calib_pred_boston[,"lwr"], 
+  Calib_Upper = calib_pred_boston[,"upr"]
+)
+
+# Print results
+print("\nBoston Housing Prediction Intervals Comparison:")
+print(results_boston)
+
+# Calculate coverage and Winkler scores
+lm_coverage_boston <- mean(test_data_boston$medv >= results_boston$LM_Lower & 
+                         test_data_boston$medv <= results_boston$LM_Upper)
+calib_coverage_boston <- mean(test_data_boston$medv >= results_boston$Calib_Lower & 
+                            test_data_boston$medv <= results_boston$Calib_Upper)
+
+lm_winkler_boston <- misc::winkler_score(test_data_boston$medv, 
+                                        results_boston$LM_Lower, 
+                                        results_boston$LM_Upper)
+calib_winkler_boston <- misc::winkler_score(test_data_boston$medv, 
+                                           results_boston$Calib_Lower, 
+                                           results_boston$Calib_Upper)
+
+print(sprintf("\nBoston Housing prediction interval metrics:"))
+print(sprintf("Linear Model: %.1f%% coverage, %.3f Winkler score", 
+              100 * lm_coverage_boston, mean(lm_winkler_boston)))
+print(sprintf("Calibrated Model: %.1f%% coverage, %.3f Winkler score", 
+              100 * calib_coverage_boston, mean(calib_winkler_boston)))
+
+# Plot prediction intervals
+par(mfrow=c(1,2))
+
+# Set common y-axis limits
+y_limits_boston <- range(c(results_boston$LM_Lower, results_boston$LM_Upper,
+                          results_boston$Calib_Lower, results_boston$Calib_Upper))
+
+# Linear Model Plot
+plot(results_boston$Actual, results_boston$LM_Pred, 
+     main="Linear Model Predictions\n(Boston Housing)",
+     xlab="Actual Median Value", ylab="Predicted Median Value",
+     ylim=y_limits_boston)
+# Add shaded prediction intervals
+x_ordered_boston <- order(results_boston$Actual)
+polygon(c(results_boston$Actual[x_ordered_boston], rev(results_boston$Actual[x_ordered_boston])),
+        c(results_boston$LM_Lower[x_ordered_boston], rev(results_boston$LM_Upper[x_ordered_boston])),
+        col=rgb(0, 0, 1, 0.2), border=NA)
+points(results_boston$Actual, results_boston$LM_Pred)
+abline(0, 1, col="red", lty=2)
+
+# Calibrated Model Plot
+plot(results_boston$Actual, results_boston$Calib_Pred,
+     main="Calibrated Model Predictions\n(Boston Housing)",
+     xlab="Actual Median Value", ylab="Predicted Median Value",
+     ylim=y_limits_boston)
+# Add shaded prediction intervals
+polygon(c(results_boston$Actual[x_ordered_boston], rev(results_boston$Actual[x_ordered_boston])),
+        c(results_boston$Calib_Lower[x_ordered_boston], rev(results_boston$Calib_Upper[x_ordered_boston])),
+        col=rgb(0, 0, 1, 0.2), border=NA)
+points(results_boston$Actual, results_boston$Calib_Pred)
+abline(0, 1, col="red", lty=2)
 ```
 

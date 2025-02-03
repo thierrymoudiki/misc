@@ -1,0 +1,69 @@
+---
+title: "Calibrated model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Calibrated model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+library(misc)
+```
+
+# Load mtcars dataset
+```{r}
+data(mtcars)
+```
+
+# Split data into training and test sets
+```{r}
+set.seed(123)
+train_idx <- sample(nrow(mtcars), size = floor(0.7 * nrow(mtcars)))
+train_data <- mtcars[train_idx, ]
+test_data <- mtcars[-train_idx, ]
+
+# Fit regular linear model
+```{r}
+lm_model <- lm(mpg ~ ., data = train_data)
+```
+
+# Fit calibrated model 
+```{r}
+calib_model <- misc::calibmodel(X = as.matrix(train_data[,-1]), y = train_data$mpg)
+```
+
+# Make predictions on test set
+```{r}
+lm_pred <- predict(lm_model, newdata = test_data, interval = "prediction")
+calib_pred <- predict(calib_model, newdata = as.matrix(test_data[,-1]), interval = "prediction")
+```
+
+
+# Compare predictions
+```{r}
+results <- data.frame(
+  Actual = test_data$mpg,
+  LM_Pred = lm_pred[,"fit"],
+  LM_Lower = lm_pred[,"lwr"],
+  LM_Upper = lm_pred[,"upr"],
+  Calib_Pred = calib_pred[,"fit"],
+  Calib_Lower = calib_pred[,"lwr"], 
+  Calib_Upper = calib_pred[,"upr"]
+)
+
+# Print results
+print("Prediction Intervals Comparison:")
+print(results)
+
+# Calculate coverage (% of actual values within prediction intervals)
+lm_coverage <- mean(test_data$mpg >= results$LM_Lower & 
+                   test_data$mpg <= results$LM_Upper)
+calib_coverage <- mean(test_data$mpg >= results$Calib_Lower & 
+                      test_data$mpg <= results$Calib_Upper)
+
+print(sprintf("\nPrediction interval coverage:"))
+print(sprintf("Linear Model: %.1f%%", 100 * lm_coverage))
+print(sprintf("Calibrated Model: %.1f%%", 100 * calib_coverage))
+```
+

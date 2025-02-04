@@ -1,116 +1,108 @@
 #' @export
-calibmodel <- function(X, y, workhorse=stats::lm, lambda=0.1, 
- method = c("splitconformal", "block-bootstrap", "surrogate", "kde", "bootstrap"),
-level=95, seed=123) {
-    method <- match.arg(method)
+ridgemodel <- function(X, y, workhorse=stats::lm, lambda=0.1, 
+level=95, seed=123, ...) {
     set.seed(seed)  
     n_train <- floor(0.5 * nrow(X))
     y_mean <- mean(y)
+    X_mean <- colMeans(X)
+    X_sd <- apply(X, 2, sd)
+    X_scaled <- scale(X, center=X_mean, scale=X_sd)
     y <- y - y_mean
-    train_idx <- sample(nrow(X), size=n_train)  
-    train_set <- X[train_idx, ]
-    cal_set <- X[-train_idx, ]
-    y_train <- y[train_idx]
-    y_cal <- y[-train_idx]  
+    p <- ncol(X)
+    sqrt_lambda <- sqrt(lambda)
+    Z <- rbind(X_scaled, diag(sqrt_lambda, p, p))
+    y_aug <- c(y, rep(0, p))
+    # Create data frame with augmented data
+    df <- data.frame(y = y_aug, as.data.frame(Z))
   # If workhorse is lm or glm, use ridge regression with augmented matrices
   if (identical(workhorse, stats::lm) || identical(workhorse, stats::glm)) {
-    # Create augmented matrices for training set
-    p <- ncol(train_set)
-    sqrt_lambda <- sqrt(lambda)
-    Z_train <- rbind(train_set, diag(sqrt_lambda, p, p))
-    y_aug_train <- c(y_train, rep(0, p))
-    Z_cal <- rbind(cal_set, diag(sqrt_lambda, p, p))
-    y_aug_cal <- c(y_cal, rep(0, p))
-    
-    # Create data frames with augmented data
-    df_train <- data.frame(y = y_aug_train, as.data.frame(Z_train))
-    df_cal <- data.frame(y = y_aug_cal, as.data.frame(Z_cal))
-    
-    # Fit models using lm
-    model_train <- lm(y ~ . - 1, data = df_train)  # -1 to remove intercept
-    model_cal <- lm(y ~ . - 1, data = df_cal)
-    
-    # Store original data
-    model_train$x <- train_set
-    model_train$y <- y_train
-    model_cal$x <- cal_set
-    model_cal$y <- y_cal
-    
-  } else {
-    # Original code for other workhorse functions
-    df_train <- data.frame(train_set, y=y_train)
-    df_cal <- data.frame(cal_set, y=y_cal)  
-    model_train <- try(workhorse(y ~ ., data=df_train), silent=TRUE)
-    if (inherits(model_train, "try-error")) {
-      model_train <- workhorse(X = as.matrix(train_set), y = y_train)
+        # Original code for other workhorse functions 
+        model <- try(workhorse(y ~ . -1, data=df, ...), silent=TRUE)
+        if (inherits(model, "try-error")) {
+            model <- workhorse(X = as.matrix(X), y = y, ...)
+        }
     }
-    model_cal <- try(workhorse(y ~ ., data=df_cal), silent=TRUE)
-    if (inherits(model_cal, "try-error")) {
-      model_cal <- workhorse(X = as.matrix(cal_set), y = y_cal)
-    }
+  model$y_mean <- y_mean
+  model$X_mean <- X_mean
+  model$X_sd <- X_sd
+  model$level <- level
+  class(model) <- c("ridgemodel", "lm")
+  return(model)
+}
+
+#' @export
+predict.ridgemodel <- function(object, newdata, ...) {
+  # Convert newdata to matrix if it isn't already
+  if (!is.matrix(newdata)) newdata <- as.matrix(newdata)
+  
+  # Check dimensions
+  if (length(object$X_mean) != ncol(newdata)) {
+    stop("Number of variables in newdata (", ncol(newdata), 
+         ") must match the training data (", length(object$X_mean), ")")
   }
-  # Predict on calibration set
-  pred_cal <- try(predict(model_train, newdata=cal_set, interval="prediction"), silent=TRUE)
-  if (inherits(pred_cal, "try-error") || any(is.nan(pred_cal))) {
-    # Fall back to point predictions with empirical intervals
-    pred_fit <- as.vector(cal_set %*% model_train$coefficients)
-    pred_cal <- matrix(0, nrow=length(pred_fit), ncol=3)
-    colnames(pred_cal) <- c("fit", "lwr", "upr")
-    pred_cal[,"fit"] <- pred_fit    
-  }  
-  # Calculate calibrated residuals
-  calibrated_residuals <- y_cal - pred_cal[,"fit"]
-  model_cal$calibrated_residuals <- calibrated_residuals
-  model_cal$y_mean <- y_mean
-  model_cal$level <- level
-  model_cal$method <- method
-  class(model_cal) <- c("calibmodel", "lm")
-  return(model_cal)
+  # Scale new data using training scaling parameters
+  newdata_scaled <- scale(newdata, 
+                         center = object$X_mean,
+                         scale = object$X_sd)
+  # Make predictions
+  pred <- stats::predict.lm(object, as.data.frame(newdata_scaled), ...) + object$y_mean
+  return(drop(pred))
+  
 }
 
-# Prediction method
+# https://stackoverflow.com/questions/14967813/is-there-a-function-or-package-which-will-simulate-predictions-for-an-object-ret
 #' @export
-predict.calibmodel <- function(object, newdata, interval="prediction", ...) {
-  # Convert matrix/array to data frame if necessary
-  if (!is.data.frame(newdata)) {
-    newdata <- as.data.frame(newdata)
-    colnames(newdata) <- colnames(object$model)[-1]  # Exclude response column name
-  }  
-  # Standard prediction
-  pred <- NextMethod("predict", object, newdata=newdata, interval=interval, ...)
-  pred <- pred + object$y_mean
-  # If prediction interval is requested and calibrated residuals exist
-  if (interval == "prediction" && !is.null(object$calibrated_residuals)) {    
-    if (object$method == "splitconformal") {
-        absolute_residuals <- abs(object$calibrated_residuals)
-        qt_abs_res <- quantile(absolute_residuals, object$level/100)
-        pred[,"lwr"] <- pred[,"fit"] - qt_abs_res
-        pred[,"upr"] <- pred[,"fit"] + qt_abs_res
-    } else {
-      absolute_residuals <- abs(object$calibrated_residuals)
-      qt_abs_res <- quantile(absolute_residuals, object$level/100)
-      pred[,"lwr"] <- pred[,"fit"] - qt_abs_res
-      pred[,"upr"] <- pred[,"fit"] + qt_abs_res
-    }
-  }  
-  return(pred)
+simulate.ridgemodel <- function(object, newdata, nsim = 100L, seed = NULL, ...) {
+  if (!is.null(seed)) set.seed(seed)
+  
+  misc::debug_print("Input newdata:")
+  misc::debug_print(newdata)
+  
+  # Get predictions for new data
+  fitted_values <- predict(object, newdata = newdata)
+  misc::debug_print("Fitted values:")
+  misc::debug_print(fitted_values)
+  
+  # Get the residual standard error from the model
+  sigma <- sqrt(sum(object$residuals^2) / object$df.residual)
+  misc::debug_print("Sigma:")
+  misc::debug_print(sigma)
+  
+  # Generate random normal errors
+  errors <- matrix(rnorm(length(fitted_values) * nsim, 
+                        mean = 0, 
+                        sd = sigma), 
+                  nrow = length(fitted_values), 
+                  ncol = nsim)
+  misc::debug_print("Generated errors:")
+  misc::debug_print(head(errors))
+  
+  # Add errors to fitted values to create simulations
+  result <- sweep(errors, 1, fitted_values, "+")
+  misc::debug_print("Final result:")
+  misc::debug_print(head(result))
+  
+  # Convert to data.frame to match simulate.lm output format
+  result <- as.data.frame(result)
+  names(result) <- paste0("sim_", 1:nsim)
+  
+  return(result)
 }
 
 #' @export
-calibmodel.formula <- function(formula, data, seed=123) {
+ridgemodel.formula <- function(formula, data, workhorse=stats::lm, 
+lambda=0.1, seed=123, ...) {
   # Extract X matrix and y vector from formula and data
   mf <- model.frame(formula, data)
   y <- model.response(mf)
-  X <- model.matrix(formula, data)[,-1, drop=FALSE]  # Remove intercept column
-  
+  X <- model.matrix(formula, data)[,-1, drop=FALSE]  # Remove intercept column  
   # Call the original caliblm function
-  result <- calibmodel(X, y, seed=seed)
-  
+  result <- ridgemodel(X, y, workhorse=workhorse, 
+  lambda=lambda, seed=seed, ...)  
   # Add formula-related attributes
   result$call <- match.call()
   result$terms <- terms(formula, data=data)
-  result$model <- mf
-  
+  result$model <- mf  
   return(result)
 }
 
@@ -121,8 +113,7 @@ nlgaussianridge <- function(X, y, lambda, n_hidden_features=5L,
     activation_function <- match.arg(activation_function)
     scaled_X <- scale(X)
     y_mean <- mean(y)
-    centered_y <- y - y_mean
-    
+    centered_y <- y - y_mean    
     # Create augmented features if needed
     if (n_hidden_features > 0) {
         if (activation_function == "relu") {
@@ -137,8 +128,7 @@ nlgaussianridge <- function(X, y, lambda, n_hidden_features=5L,
             hidden_features <- tanh(scaled_X)            
         }
         scaled_X <- cbind(scaled_X, hidden_features)
-    }
-    
+    }    
     # If workhorse is lm or glm, use ridge regression formula
     if (is.null(workhorse) || inherits(workhorse, "lm") || inherits(workhorse, "glm")) {
         # Ridge regression solution: (X'X + λI)^(-1)X'y

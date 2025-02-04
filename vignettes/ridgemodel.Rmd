@@ -1,0 +1,113 @@
+---
+title: "Calibrated model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Calibrated model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+library(misc)
+```
+
+# Example 1: MPG Prediction (mtcars dataset)
+
+## Load and prepare data
+```{r}
+data(mtcars)
+
+set.seed(1243)
+train_idx <- sample(nrow(mtcars), size = floor(0.75 * nrow(mtcars)))
+train_data <- mtcars[train_idx, ]
+test_data <- mtcars[-train_idx, -1]
+```
+
+## Fit models
+```{r}
+# Fit regular linear model
+start <- proc.time()[3]
+lm_model <- lm(mpg ~ ., data = train_data)
+print(proc.time()[3] - start)
+print(summary(lm_model))
+print(confint(lm_model))
+
+# Fit calibrated model 
+start <- proc.time()[3]
+ridge_model <- misc::ridgemodel(X = as.matrix(train_data[,-1]), y = train_data$mpg)
+print(proc.time()[3] - start)
+print(summary(ridge_model))
+print(confint(ridge_model))
+print(simulate(ridge_model, newdata = test_data))
+```
+
+## Make predictions
+```{r eval=FALSE}
+lm_pred <- predict(lm_model, newdata = test_data, interval = "prediction")
+ridge_pred <- predict(ridge_model, newdata = as.matrix(test_data[,-1]), interval = "prediction")
+```
+
+## Compare predictions
+```{r eval=FALSE, fig.width=7.5}
+results <- data.frame(
+  Actual = test_data$mpg,
+  LM_Pred = lm_pred[,"fit"],
+  LM_Lower = lm_pred[,"lwr"],
+  LM_Upper = lm_pred[,"upr"],
+  Ridge_Pred = ridge_pred[,"fit"],
+  Ridge_Lower = ridge_pred[,"lwr"], 
+  Ridge_Upper = ridge_pred[,"upr"]
+)
+
+# Print results
+print("Prediction Intervals Comparison:")
+print(results)
+
+# Calculate coverage and Winkler scores
+lm_coverage <- mean(test_data$mpg >= results$LM_Lower & 
+                   test_data$mpg <= results$LM_Upper)
+ridge_coverage <- mean(test_data$mpg >= results$Ridge_Lower & 
+                      test_data$mpg <= results$Ridge_Upper)
+
+lm_winkler <- misc::winkler_score(test_data$mpg, results$LM_Lower, results$LM_Upper)
+ridge_winkler <- misc::winkler_score(test_data$mpg, results$Ridge_Lower, results$Ridge_Upper)
+
+print(sprintf("\nPrediction interval metrics:"))
+print(sprintf("Linear Model: %.1f%% coverage, %.3f Winkler score", 
+              100 * lm_coverage, mean(lm_winkler)))
+print(sprintf("Calibrated Model: %.1f%% coverage, %.3f Winkler score", 
+              100 * calib_coverage, mean(calib_winkler)))
+
+# Set common y-axis limits for both plots
+y_limits <- range(c(results$LM_Lower, results$LM_Upper,
+                   results$Ridge_Lower, results$Ridge_Upper))
+
+# Plot prediction intervals
+par(mfrow=c(1,2))
+
+# Linear Model Plot
+plot(results$Actual, results$LM_Pred, 
+     main="Linear Model Predictions",
+     xlab="Actual MPG", ylab="Predicted MPG",
+     ylim=y_limits)
+# Add shaded prediction intervals
+x_ordered <- order(results$Actual)
+polygon(c(results$Actual[x_ordered], rev(results$Actual[x_ordered])),
+        c(results$LM_Lower[x_ordered], rev(results$LM_Upper[x_ordered])),
+        col=rgb(0, 0, 1, 0.2), border=NA)
+points(results$Actual, results$LM_Pred)  # Replot points over shading
+abline(0, 1, col="red", lty=2)  # Add diagonal line
+
+# Ridge Model Plot
+plot(results$Actual, results$Ridge_Pred,
+     main="Ridge Model Predictions",
+     xlab="Actual MPG", ylab="Predicted MPG",
+     ylim=y_limits)
+# Add shaded prediction intervals
+polygon(c(results$Actual[x_ordered], rev(results$Actual[x_ordered])),
+        c(results$Ridge_Lower[x_ordered], rev(results$Ridge_Upper[x_ordered])),
+        col=rgb(0, 0, 1, 0.2), border=NA)
+points(results$Actual, results$Ridge_Pred)  # Replot points over shading
+abline(0, 1, col="red", lty=2)  # Add diagonal line
+```
+

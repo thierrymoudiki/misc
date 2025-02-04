@@ -1,5 +1,5 @@
 #' @export
-ridgemodel <- function(X, y, workhorse=stats::lm, lambda=0.1, 
+ridgemodel <- function(X, y, workhorse=stats::lm, lambda=0.01, 
 level=95, seed=123, ...) {
     set.seed(seed)  
     n_train <- floor(0.5 * nrow(X))
@@ -34,7 +34,6 @@ level=95, seed=123, ...) {
 predict.ridgemodel <- function(object, newdata, ...) {
   # Convert newdata to matrix if it isn't already
   if (!is.matrix(newdata)) newdata <- as.matrix(newdata)
-  
   # Check dimensions
   if (length(object$X_mean) != ncol(newdata)) {
     stop("Number of variables in newdata (", ncol(newdata), 
@@ -50,42 +49,24 @@ predict.ridgemodel <- function(object, newdata, ...) {
   
 }
 
-# https://stackoverflow.com/questions/14967813/is-there-a-function-or-package-which-will-simulate-predictions-for-an-object-ret
 #' @export
-simulate.ridgemodel <- function(object, newdata, nsim = 100L, seed = NULL, ...) {
-  if (!is.null(seed)) set.seed(seed)
-  
-  misc::debug_print("Input newdata:")
-  misc::debug_print(newdata)
-  
+simulate.ridgemodel <- function(object, newdata, nsim = 100L, seed = 123, ...) {
+  set.seed(seed)  
   # Get predictions for new data
-  fitted_values <- predict(object, newdata = newdata)
-  misc::debug_print("Fitted values:")
-  misc::debug_print(fitted_values)
-  
+  fitted_values <- predict.ridgemodel(object, newdata = newdata)
   # Get the residual standard error from the model
   sigma <- sqrt(sum(object$residuals^2) / object$df.residual)
-  misc::debug_print("Sigma:")
-  misc::debug_print(sigma)
-  
   # Generate random normal errors
   errors <- matrix(rnorm(length(fitted_values) * nsim, 
                         mean = 0, 
                         sd = sigma), 
                   nrow = length(fitted_values), 
                   ncol = nsim)
-  misc::debug_print("Generated errors:")
-  misc::debug_print(head(errors))
-  
   # Add errors to fitted values to create simulations
-  result <- sweep(errors, 1, fitted_values, "+")
-  misc::debug_print("Final result:")
-  misc::debug_print(head(result))
-  
+  result <- errors + fitted_values
   # Convert to data.frame to match simulate.lm output format
   result <- as.data.frame(result)
   names(result) <- paste0("sim_", 1:nsim)
-  
   return(result)
 }
 
@@ -97,7 +78,7 @@ lambda=0.1, seed=123, ...) {
   y <- model.response(mf)
   X <- model.matrix(formula, data)[,-1, drop=FALSE]  # Remove intercept column  
   # Call the original caliblm function
-  result <- ridgemodel(X, y, workhorse=workhorse, 
+  result <- misc::ridgemodel(X, y, workhorse=workhorse, 
   lambda=lambda, seed=seed, ...)  
   # Add formula-related attributes
   result$call <- match.call()

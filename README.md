@@ -1,6 +1,6 @@
 # misc
 
-[![misc status badge](https://techtonique.r-universe.dev/badges/misc)](https://techtonique.r-universe.dev/misc) [![Documentation](https://img.shields.io/badge/documentation-is_here-green)](https://techtonique.github.io/misc/index.html)
+[![misc status badge](https://r-packages.techtonique.net/badges/misc)](https://r-packages.techtonique.net/misc) [![Documentation](https://img.shields.io/badge/documentation-is_here-green)](https://techtonique.github.io/misc/index.html)
 
 ## Description
 

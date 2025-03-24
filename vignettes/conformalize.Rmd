@@ -268,6 +268,41 @@ predictions_boston_rf <- predict(
 head(predictions_boston_rf)
 ```
 
+```{r plot-prediction-intervals, echo=FALSE, message=FALSE}
+# Create a data frame for plotting
+plot_data <- data.frame(
+  Observation = seq_len(nrow(test_data)),
+  TrueValue = test_data$medv,
+  LowerBound = predictions_boston_rf[, "lwr"],
+  UpperBound = predictions_boston_rf[, "upr"]
+)
+```
+
+```{r plot-prediction-intervals-base, echo=FALSE, message=FALSE, fig.width=7.5}
+# Sort data by observation for proper plotting
+plot_data <- plot_data[order(plot_data$Observation), ]
+
+# Plot the true values
+plot(
+  plot_data$Observation, plot_data$TrueValue,
+  pch = 16, col = "blue", cex = 0.7,
+  xlab = "Observation", ylab = "Value",
+  main = "Prediction Intervals vs True Values"
+)
+
+# Add the prediction intervals using polygon
+polygon(
+  c(plot_data$Observation, rev(plot_data$Observation)),
+  c(plot_data$LowerBound, rev(plot_data$UpperBound)),
+  col = rgb(1, 0, 0, 0.2), border = NA
+)
+
+# Add points for true values again to overlay on the polygon
+points(
+  plot_data$Observation, plot_data$TrueValue,
+  pch = 16, col = "blue", cex = 0.7
+)
+```
 
 ### Calculate Out-of-Sample Coverage Rate 2
 

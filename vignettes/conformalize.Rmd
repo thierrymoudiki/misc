@@ -81,7 +81,7 @@ The coverage rate is the proportion of true values that fall within the predicti
 true_y <- 3 * new_data$x1 + 2 * new_data$x2 + rnorm(50, sd = 0.5)
 
 # Check if true values fall within the prediction intervals
-coverage <- mean(true_y >= predictions$lwr & true_y <= predictions$upr)
+coverage <- mean(true_y >= predictions[, "lwr"] & true_y <= predictions[, "upr"])
 
 cat("Out-of-sample coverage rate:", coverage)
 ```
@@ -163,7 +163,7 @@ The coverage rate is the proportion of true values in the test set that fall wit
 true_y_boston <- test_data$medv
 
 # Check if true values fall within the prediction intervals
-coverage_boston <- mean(true_y_boston >= predictions_boston$lwr & true_y_boston <= predictions_boston$upr)
+coverage_boston <- mean(true_y_boston >= predictions_boston[, "lwr"] & true_y_boston <= predictions_boston[, "upr"])
 
 cat("Out-of-sample coverage rate for Boston dataset:", coverage_boston)
 ```
@@ -212,7 +212,7 @@ The coverage rate is the proportion of true values in the test set that fall wit
 true_y_boston <- test_data$medv
 
 # Check if true values fall within the prediction intervals
-coverage_boston <- mean(true_y_boston >= predictions_boston$lwr & true_y_boston <= predictions_boston$upr)
+coverage_boston <- mean(true_y_boston >= predictions_boston[, "lwr"] & true_y_boston <= predictions_boston[, "upr"])
 
 cat("Out-of-sample coverage rate for Boston dataset:", coverage_boston)
 ```

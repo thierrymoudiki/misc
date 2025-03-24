@@ -93,26 +93,49 @@ conformalize <- function(formula = NULL, x = NULL, y = NULL, data = NULL,
 #' @param ... Additional arguments to pass to the predict function.
 #' @return A matrix with predictions and prediction intervals.
 #' @export
+#' # Define fit and predict functions
+#' fit_func <- function(formula, data, ...) stats::glm(formula, data = data, ...)
+#' predict_func <- function(fit, newdata, ...) predict(fit, newdata, ...)
 #' 
-predict.conformalize <- function(object, newdata, level = 0.95, method = c("splitconformal", "simulation"), 
-                                 n_sim = 1000, seed = NULL, ...) {
+#' # Apply conformalize using the training data
+#' conformal_model_boston <- misc::conformalize(
+#'   formula = medv ~ .,
+#'   data = train_data,
+#'   fit_func = fit_func,
+#'   predict_func = predict_func,
+#'   seed = 123
+#' )
+#' 
+#' # Predict with split conformal method on the test data
+#' predictions_boston <- predict(
+#'   conformal_model_boston,
+#'   newdata = test_data,
+#'   level = 0.95,
+#'   method = "split"
+#' )
+#' 
+#' head(predictions_boston)
+predict.conformalize <- function(object, newdata, level = 0.95, 
+                                 method = c("splitconformal", "kde",
+                                            "surrogate", "bootstrap"), 
+                                 n_sim = 250L, seed = 123L, ...) {
+  if (is.null(dim(newdata)))
+  {
+    newdata <- matrix(newdata, nrow = 1)
+  }
   # Ensure the object is of class "conformalize"
   if (!inherits(object, "conformalize")) {
     stop("The object must be of class 'conformalize'.")
   }
-  
   # Set seed for reproducibility
   if (!is.null(seed)) set.seed(seed)
-  
   # Extract components from the conformalize object
   fit <- object$fit
   residuals <- object$residuals
   sd_residuals <- object$sd_residuals
   scaled_residuals <- object$scaled_residuals
-  
   # Generate predictions using the provided predict_func
   predictions <- predict(fit, newdata, ...)
-  
   # Calculate prediction intervals
   method <- match.arg(method)
   if (method == "splitconformal") {
@@ -121,43 +144,69 @@ predict.conformalize <- function(object, newdata, level = 0.95, method = c("spli
     q <- quantile(abs(residuals), probs = 1 - alpha)
     lower <- predictions - q
     upper <- predictions + q
-  } else if (method == "simulation") {
+  } else {
     # Simulation-based prediction intervals
-    sim_residuals <- rnorm(n_sim, mean = scaled_residuals, sd = sd_residuals)
-    sim_predictions <- outer(predictions, sim_residuals, "+")
+    n_preds <- nrow(newdata)
+    sim_residuals <- matrix(misc::direct_sampling(data = residuals, 
+                                           n = n_sim*n_preds,
+                                           method = method,
+                                           seed = seed), 
+                            nrow = n_preds,
+                            ncol = n_sim)
+    sim_predictions <- predictions + sim_residuals
     lower <- apply(sim_predictions, 1, quantile, probs = (1 - level) / 2)
     upper <- apply(sim_predictions, 1, quantile, probs = 1 - (1 - level) / 2)
   }
-  
   # Return a data frame with predictions and intervals
-  data.frame(
-    prediction = predictions,
+  return(as.matrix(data.frame(
+    fit = predictions,
     lwr = lower,
     upr = upper
-  )
+  )))
 }
 
-simulate.conformalize <- function(object, n_sim = 1000, seed = NULL, ...) {
+#' simulate method for conformalize objects
+#' 
+#' This function generates simulations for new data using the fitted conformal model.
+#' 
+#' @param object A object of class \code{conformalize}.
+#' @param newdata A data frame or matrix of new data for prediction.
+#' @param method The method to use for prediction intervals. Options are "split" or "simulation".
+#' @param n_sim The number of simulations to perform if using the "simulation" method. Default is 1000.
+#' @param seed An optional seed for reproducibility.
+#' @param ... Additional arguments to pass to the predict function.
+#' @return A matrix with predictions and prediction intervals.
+#' @export
+#' 
+simulate.conformalize <- function(object, 
+                                  newdata, 
+                                  method = c("kde", 
+                                             "surrogate", 
+                                             "bootstrap"), 
+                                  n_sim = 250L, 
+                                  seed = NULL, 
+                                  ...) {
   # Ensure the object is of class "conformalize"
   if (!inherits(object, "conformalize")) {
     stop("The object must be of class 'conformalize'.")
   }
-  
+  method <- match.arg(method)
   # Set seed for reproducibility
   if (!is.null(seed)) set.seed(seed)
-  
   # Extract components from the conformalize object
   fit <- object$fit
   residuals <- object$residuals
   sd_residuals <- object$sd_residuals
   scaled_residuals <- object$scaled_residuals
-  
-  # Generate simulated residuals
-  sim_residuals <- rnorm(n_sim, mean = scaled_residuals, sd = sd_residuals)
-  
+  # Simulation-based prediction intervals
+  n_preds <- nrow(newdata)
   # Generate predictions using the provided predict_func
-  predictions <- predict_func(fit, newdata, ...)
-  
-  res <- predictions + sim_residuals
-  return(res)
+  predictions <- predict(fit, newdata, ...)
+  sim_residuals <- matrix(misc::direct_sampling(data = residuals, 
+                                                n = n_sim*n_preds,
+                                                method = method,
+                                                seed = seed), 
+                          nrow = n_preds,
+                          ncol = n_sim)
+  return(predictions + sim_residuals)
 }

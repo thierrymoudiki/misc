@@ -27,7 +27,8 @@
 #' predict_func = predict_func, split_ratio = 0.5, seed = 123)
 #'
 conformalize <- function(formula = NULL, x = NULL, y = NULL, data = NULL, 
-                         fit_func, predict_func, split_ratio = 0.5, seed = NULL, ...) {
+                         fit_func, predict_func = predict, 
+                         split_ratio = 0.5, seed = NULL, ...) {
 
   # Set seed for reproducibility
   if (!is.null(seed)) set.seed(seed)
@@ -53,7 +54,7 @@ conformalize <- function(formula = NULL, x = NULL, y = NULL, data = NULL,
     fit <- fit_func(formula, data = train_data, ...)    
     # Predict on the calibration data
     cal_y <- cal_data[[all.vars(formula)[1]]]
-    cal_pred <- predict_func(fit, newdata = cal_data)
+    cal_pred <- predict_func(fit, cal_data, ...)
   } else if (!is.null(x) && !is.null(y)) {
     # Handle matrix interface
     train_x <- x[split_index, , drop = FALSE]
@@ -61,9 +62,9 @@ conformalize <- function(formula = NULL, x = NULL, y = NULL, data = NULL,
     cal_x <- x[-split_index, , drop = FALSE]
     cal_y <- y[-split_index]    
     # Fit the model on the training data
-    fit <- fit_func(train_x, train_y)    
+    fit <- fit_func(train_x, train_y, ...)    
     # Predict on the calibration data
-    cal_pred <- predict_func(fit, newx = cal_x)
+    cal_pred <- predict_func(fit, cal_x, ...)
   } else {
     stop("Either formula or x and y must be provided.")
   }  
@@ -115,7 +116,9 @@ conformalize <- function(formula = NULL, x = NULL, y = NULL, data = NULL,
 #' )
 #' 
 #' head(predictions_boston)
-predict.conformalize <- function(object, newdata, level = 0.95, 
+predict.conformalize <- function(object, newdata, 
+                                 predict_func = predict,
+                                 level = 0.95, 
                                  method = c("splitconformal", "kde",
                                             "surrogate", "bootstrap"), 
                                  n_sim = 250L, seed = 123L, ...) {
@@ -135,7 +138,7 @@ predict.conformalize <- function(object, newdata, level = 0.95,
   sd_residuals <- object$sd_residuals
   scaled_residuals <- object$scaled_residuals
   # Generate predictions using the provided predict_func
-  predictions <- predict(fit, newdata, ...)
+  predictions <- predict_func(fit, newdata, ...)
   # Calculate prediction intervals
   method <- match.arg(method)
   if (method == "splitconformal") {

@@ -1,7 +1,7 @@
 Package: misc
 Title: Miscellaneous Useful R Functions
-Version: 0.5.0
-Date: 2025-03-21
+Version: 0.5.1
+Date: 2025-03-24
 Authors@R: 
     person("T.", "Moudiki", , "thierry.moudiki@gmail.com", role = c("aut", "cre"))
 Description: Miscellaneous Useful R Functions.

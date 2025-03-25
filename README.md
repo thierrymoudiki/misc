@@ -10,9 +10,10 @@ Read the [vignettes](https://techtonique.github.io/misc/) ("Articles") for more 
 
 ## Installation
 
-```r
-remotes::install_github("thierrymoudiki/misc")
-```
+```R
+options(repos = c(techtonique = "https://r-packages.techtonique.net",
+                  CRAN = "https://cloud.r-project.org"))
 
-Or from R-universe.
+install.packages("misc")
+```
 

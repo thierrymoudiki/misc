@@ -1,0 +1,185 @@
+---
+title: "conformalize matrix interface"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{conformalize matrix interface}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(misc)
+```
+
+## Example: Conformal Prediction with Out-of-Sample Coverage
+
+In this example, we demonstrate how to use the `conformalize` function to perform conformal prediction and calculate the out-of-sample coverage rate.
+
+### Simulated Data
+
+We will generate a simple dataset for demonstration purposes.
+
+```{r simulate-data}
+set.seed(123)
+n <- 200
+x <- matrix(runif(n * 2), ncol = 2)
+y <- 3 * x[, 1] + 2 * x[, 2] + rnorm(n, sd = 0.5)
+data <- data.frame(x1 = x[, 1], x2 = x[, 2], y = y)
+```
+
+### Fit Conformal Model
+
+We will use a linear model (`lm`) as the `fit_func` and its corresponding `predict` function as the `predict_func`.
+
+```{r fit-conformal-model}
+library(stats)
+
+# Define fit and predict functions
+fit_func <- function(x, y, ...)
+{
+  df <- data.frame(y=y, x) # naming of columns is mandatory for `predict`
+  print(head(df))
+  ranger::ranger(y ~ ., data=df, ...)
+}
+
+predict_func <- function(obj, newx)
+{
+  colnames(newx) <- paste0("X", 1:ncol(newx)) # mandatory, linked to df in fit_func
+  predict(object=obj, data=newx)$predictions # only accepts a named newx
+}
+
+# Apply conformalize
+conformal_model <- misc::conformalize(  
+  x = x,
+  y = y,
+  fit_func = fit_func,
+  predict_func = predict_func,
+  split_ratio = 0.8,
+  seed = 123
+)
+```
+
+### Generate Predictions and Prediction Intervals
+
+We will use the `predict.conformalize` method to generate predictions and calculate prediction intervals.
+
+```{r predict-intervals}
+# New data for prediction
+new_data <- data.frame(X1 = runif(50), X2 = runif(50))
+
+# Predict with split conformal method
+predictions <- predict(
+  conformal_model,
+  newdata = new_data,
+  level = 0.95,
+  method = "split",
+  predict_func = predict_func
+)
+
+head(predictions)
+```
+
+### Calculate Out-of-Sample Coverage Rate
+
+The coverage rate is the proportion of true values that fall within the prediction intervals.
+
+```{r calculate-coverage}
+# Simulate true values for the new data
+true_y <- 3 * new_data$x1 + 2 * new_data$x2 + rnorm(50, sd = 0.5)
+
+# Check if true values fall within the prediction intervals
+coverage <- mean(true_y >= predictions[, "lwr"] & true_y <= predictions[, "upr"])
+
+cat("Out-of-sample coverage rate:", coverage)
+```
+
+### Results
+
+- The prediction intervals are calculated using the split conformal method.
+- The out-of-sample coverage rate is displayed, which should be close to the specified confidence level (e.g., 0.95).
+
+## Example: Conformal Prediction with the `MASS::Boston` Dataset
+
+In this example, we use the `MASS::Boston` dataset to demonstrate conformal prediction.
+
+### Load the Data
+
+We will use the `MASS` package to access the `Boston` dataset.
+
+```{r load-boston-data}
+library(MASS)
+
+# Load the Boston dataset
+data(Boston)
+
+# Inspect the dataset
+head(Boston)
+```
+
+### Split the Data
+
+We will split the data into training and test sets to ensure they are disjoint.
+
+```{r split-data-boston}
+set.seed(123)
+n <- nrow(MASS::Boston)
+train_indices <- sample(seq_len(n), size = floor(0.8 * n))
+train_data <- MASS::Boston[train_indices, ]
+test_data <- MASS::Boston[-train_indices, ]
+```
+
+### Fit Conformal Model 
+
+```{r fit-conformal-boston}
+predict_func <- function(obj, newx)
+{
+  predict(object=obj, data=newx)$predictions # only accepts a named newx
+}
+
+
+# Apply conformalize using the training data
+conformal_model_boston <- misc::conformalize(
+  x = as.matrix(train_data[, -which(names(train_data) == "medv")]),
+  y = train_data$medv,
+  fit_func = fit_func,
+  predict_func = predict_func,
+  seed = 123
+)
+```
+
+### Generate Predictions and Prediction Intervals 
+
+We will use the `predict.conformalize` method to generate predictions and calculate prediction intervals for the test set.
+
+```{r predict-intervals-boston}
+# Predict with split conformal method on the test data
+predictions_boston <- predict(
+  conformal_model_boston,
+  newdata = as.matrix(test_data),
+  level = 0.95,
+  method = "split",
+  predict_func = predict_func
+)
+
+head(predictions_boston)
+```
+
+### Calculate Out-of-Sample Coverage Rate 1
+
+The coverage rate is the proportion of true values in the test set that fall within the prediction intervals.
+
+```{r calculate-coverage-boston}
+# True values for the test set
+true_y_boston <- test_data$medv
+
+# Check if true values fall within the prediction intervals
+coverage_boston <- mean(true_y_boston >= predictions_boston[, "lwr"] & true_y_boston <= predictions_boston[, "upr"])
+
+cat("Out-of-sample coverage rate for Boston dataset:", coverage_boston)
+```
+
+

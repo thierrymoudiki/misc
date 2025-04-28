@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>conformalize matrix interface</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">conformalize matrix interface</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(misc)</span></code></pre></div>
+<div id="example-conformal-prediction-with-out-of-sample-coverage" class="section level2">
+<h2>Example: Conformal Prediction with Out-of-Sample Coverage</h2>
+<p>In this example, we demonstrate how to use the
+<code>conformalize</code> function to perform conformal prediction and
+calculate the out-of-sample coverage rate.</p>
+<div id="simulated-data" class="section level3">
+<h3>Simulated Data</h3>
+<p>We will generate a simple dataset for demonstration purposes.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">runif</span>(n <span class="sc">*</span> <span class="dv">2</span>), <span class="at">ncol =</span> <span class="dv">2</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="dv">3</span> <span class="sc">*</span> x[, <span class="dv">1</span>] <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> x[, <span class="dv">2</span>] <span class="sc">+</span> <span class="fu">rnorm</span>(n, <span class="at">sd =</span> <span class="fl">0.5</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">x1 =</span> x[, <span class="dv">1</span>], <span class="at">x2 =</span> x[, <span class="dv">2</span>], <span class="at">y =</span> y)</span></code></pre></div>
+</div>
+<div id="fit-conformal-model" class="section level3">
+<h3>Fit Conformal Model</h3>
+<p>We will use a linear model (<code>lm</code>) as the
+<code>fit_func</code> and its corresponding <code>predict</code>
+function as the <code>predict_func</code>.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">library</span>(stats)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># Define fit and predict functions</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>fit_func <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, ...)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>{</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">y=</span>y, x) <span class="co"># naming of columns is mandatory for `predict`</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">head</span>(df))</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>  ranger<span class="sc">::</span><span class="fu">ranger</span>(y <span class="sc">~</span> ., <span class="at">data=</span>df, ...)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>}</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>predict_func <span class="ot">&lt;-</span> <span class="cf">function</span>(obj, newx)</span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>{</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>  <span class="fu">colnames</span>(newx) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;X&quot;</span>, <span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(newx)) <span class="co"># mandatory, linked to df in fit_func</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>  <span class="fu">predict</span>(<span class="at">object=</span>obj, <span class="at">data=</span>newx)<span class="sc">$</span>predictions <span class="co"># only accepts a named newx</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>}</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co"># Apply conformalize</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>conformal_model <span class="ot">&lt;-</span> misc<span class="sc">::</span><span class="fu">conformalize</span>(  </span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  <span class="at">x =</span> x,</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>  <span class="at">y =</span> y,</span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>  <span class="at">fit_func =</span> fit_func,</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>  <span class="at">predict_func =</span> predict_func,</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>  <span class="at">split_ratio =</span> <span class="fl">0.8</span>,</span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">123</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>)</span></code></pre></div>
+<pre><code>##           y        X1        X2
+## 1 0.7480449 0.4447680 0.3233450
+## 2 3.2344670 0.8746823 0.3087868
+## 3 2.8086211 0.5726334 0.6743764
+## 4 2.7359976 0.9373141 0.1054177
+## 5 1.5328762 0.2656867 0.4831677
+## 6 4.2696182 0.8578277 0.7267025</code></pre>
+</div>
+<div id="generate-predictions-and-prediction-intervals" class="section level3">
+<h3>Generate Predictions and Prediction Intervals</h3>
+<p>We will use the <code>predict.conformalize</code> method to generate
+predictions and calculate prediction intervals.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># New data for prediction</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>new_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">X1 =</span> <span class="fu">runif</span>(<span class="dv">50</span>), <span class="at">X2 =</span> <span class="fu">runif</span>(<span class="dv">50</span>))</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co"># Predict with split conformal method</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>predictions <span class="ot">&lt;-</span> <span class="fu">predict</span>(</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  conformal_model,</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">newdata =</span> new_data,</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>  <span class="at">level =</span> <span class="fl">0.95</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;split&quot;</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  <span class="at">predict_func =</span> predict_func</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>)</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="fu">head</span>(predictions)</span></code></pre></div>
+<pre><code>##            fit        lwr      upr
+## [1,] 0.6601584 -0.5900388 1.910356
+## [2,] 0.9298264 -0.3203708 2.180024
+## [3,] 2.1405602  0.8903630 3.390757
+## [4,] 0.7477106 -0.5024866 1.997908
+## [5,] 2.8979678  1.6477706 4.148165
+## [6,] 0.7849812 -0.4652160 2.035178</code></pre>
+</div>
+<div id="calculate-out-of-sample-coverage-rate" class="section level3">
+<h3>Calculate Out-of-Sample Coverage Rate</h3>
+<p>The coverage rate is the proportion of true values that fall within
+the prediction intervals.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Simulate true values for the new data</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>true_y <span class="ot">&lt;-</span> <span class="dv">3</span> <span class="sc">*</span> new_data<span class="sc">$</span>x1 <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> new_data<span class="sc">$</span>x2 <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">50</span>, <span class="at">sd =</span> <span class="fl">0.5</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co"># Check if true values fall within the prediction intervals</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>coverage <span class="ot">&lt;-</span> <span class="fu">mean</span>(true_y <span class="sc">&gt;=</span> predictions[, <span class="st">&quot;lwr&quot;</span>] <span class="sc">&amp;</span> true_y <span class="sc">&lt;=</span> predictions[, <span class="st">&quot;upr&quot;</span>])</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Out-of-sample coverage rate:&quot;</span>, coverage)</span></code></pre></div>
+<pre><code>## Out-of-sample coverage rate: NaN</code></pre>
+</div>
+<div id="results" class="section level3">
+<h3>Results</h3>
+<ul>
+<li>The prediction intervals are calculated using the split conformal
+method.</li>
+<li>The out-of-sample coverage rate is displayed, which should be close
+to the specified confidence level (e.g., 0.95).</li>
+</ul>
+</div>
+</div>
+<div id="example-conformal-prediction-with-the-massboston-dataset" class="section level2">
+<h2>Example: Conformal Prediction with the <code>MASS::Boston</code>
+Dataset</h2>
+<p>In this example, we use the <code>MASS::Boston</code> dataset to
+demonstrate conformal prediction.</p>
+<div id="load-the-data" class="section level3">
+<h3>Load the Data</h3>
+<p>We will use the <code>MASS</code> package to access the
+<code>Boston</code> dataset.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">library</span>(MASS)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co"># Load the Boston dataset</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="fu">data</span>(Boston)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co"># Inspect the dataset</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="fu">head</span>(Boston)</span></code></pre></div>
+<pre><code>##      crim zn indus chas   nox    rm  age    dis rad tax ptratio  black lstat
+## 1 0.00632 18  2.31    0 0.538 6.575 65.2 4.0900   1 296    15.3 396.90  4.98
+## 2 0.02731  0  7.07    0 0.469 6.421 78.9 4.9671   2 242    17.8 396.90  9.14
+## 3 0.02729  0  7.07    0 0.469 7.185 61.1 4.9671   2 242    17.8 392.83  4.03
+## 4 0.03237  0  2.18    0 0.458 6.998 45.8 6.0622   3 222    18.7 394.63  2.94
+## 5 0.06905  0  2.18    0 0.458 7.147 54.2 6.0622   3 222    18.7 396.90  5.33
+## 6 0.02985  0  2.18    0 0.458 6.430 58.7 6.0622   3 222    18.7 394.12  5.21
+##   medv
+## 1 24.0
+## 2 21.6
+## 3 34.7
+## 4 33.4
+## 5 36.2
+## 6 28.7</code></pre>
+</div>
+<div id="split-the-data" class="section level3">
+<h3>Split the Data</h3>
+<p>We will split the data into training and test sets to ensure they are
+disjoint.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="fu">nrow</span>(MASS<span class="sc">::</span>Boston)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>train_indices <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">seq_len</span>(n), <span class="at">size =</span> <span class="fu">floor</span>(<span class="fl">0.8</span> <span class="sc">*</span> n))</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>train_data <span class="ot">&lt;-</span> MASS<span class="sc">::</span>Boston[train_indices, ]</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>test_data <span class="ot">&lt;-</span> MASS<span class="sc">::</span>Boston[<span class="sc">-</span>train_indices, ]</span></code></pre></div>
+</div>
+<div id="fit-conformal-model-1" class="section level3">
+<h3>Fit Conformal Model</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>predict_func <span class="ot">&lt;-</span> <span class="cf">function</span>(obj, newx)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>{</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="fu">predict</span>(<span class="at">object=</span>obj, <span class="at">data=</span>newx)<span class="sc">$</span>predictions <span class="co"># only accepts a named newx</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>}</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co"># Apply conformalize using the training data</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>conformal_model_boston <span class="ot">&lt;-</span> misc<span class="sc">::</span><span class="fu">conformalize</span>(</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>  <span class="at">x =</span> <span class="fu">as.matrix</span>(train_data[, <span class="sc">-</span><span class="fu">which</span>(<span class="fu">names</span>(train_data) <span class="sc">==</span> <span class="st">&quot;medv&quot;</span>)]),</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>  <span class="at">y =</span> train_data<span class="sc">$</span>medv,</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>  <span class="at">fit_func =</span> fit_func,</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>  <span class="at">predict_func =</span> predict_func,</span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">123</span></span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>)</span></code></pre></div>
+<pre><code>##        y    crim   zn indus chas   nox    rm  age    dis rad tax ptratio  black
+## 11  15.0 0.22489 12.5  7.87    0 0.524 6.377 94.3 6.3467   5 311    15.2 392.52
+## 153 15.3 1.12658  0.0 19.58    1 0.871 5.012 88.0 1.6102   5 403    14.7 343.28
+## 10  18.9 0.17004 12.5  7.87    0 0.524 6.004 85.9 6.5921   5 311    15.2 386.71
+## 397 12.5 5.87205  0.0 18.10    0 0.693 6.405 96.0 1.6768  24 666    20.2 396.90
+## 362 19.9 3.83684  0.0 18.10    0 0.770 6.251 91.1 2.2955  24 666    20.2 350.65
+## 35  13.5 1.61282  0.0  8.14    0 0.538 6.096 96.9 3.7598   4 307    21.0 248.31
+##     lstat
+## 11  20.45
+## 153 12.12
+## 10  17.10
+## 397 19.37
+## 362 14.19
+## 35  20.34</code></pre>
+</div>
+<div id="generate-predictions-and-prediction-intervals-1" class="section level3">
+<h3>Generate Predictions and Prediction Intervals</h3>
+<p>We will use the <code>predict.conformalize</code> method to generate
+predictions and calculate prediction intervals for the test set.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Predict with split conformal method on the test data</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>predictions_boston <span class="ot">&lt;-</span> <span class="fu">predict</span>(</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  conformal_model_boston,</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">newdata =</span> <span class="fu">as.matrix</span>(test_data),</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  <span class="at">level =</span> <span class="fl">0.95</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;split&quot;</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>  <span class="at">predict_func =</span> predict_func</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>)</span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="fu">head</span>(predictions_boston)</span></code></pre></div>
+<pre><code>##           fit       lwr      upr
+## [1,] 27.03134 20.200364 33.86231
+## [2,] 19.20299 12.372013 26.03396
+## [3,] 21.34472 14.513743 28.17569
+## [4,] 18.77455 11.943577 25.60552
+## [5,] 15.60764  8.776669 22.43861
+## [6,] 21.31355 14.482574 28.14452</code></pre>
+</div>
+<div id="calculate-out-of-sample-coverage-rate-1" class="section level3">
+<h3>Calculate Out-of-Sample Coverage Rate 1</h3>
+<p>The coverage rate is the proportion of true values in the test set
+that fall within the prediction intervals.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># True values for the test set</span></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>true_y_boston <span class="ot">&lt;-</span> test_data<span class="sc">$</span>medv</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co"># Check if true values fall within the prediction intervals</span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>coverage_boston <span class="ot">&lt;-</span> <span class="fu">mean</span>(true_y_boston <span class="sc">&gt;=</span> predictions_boston[, <span class="st">&quot;lwr&quot;</span>] <span class="sc">&amp;</span> true_y_boston <span class="sc">&lt;=</span> predictions_boston[, <span class="st">&quot;upr&quot;</span>])</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Out-of-sample coverage rate for Boston dataset:&quot;</span>, coverage_boston)</span></code></pre></div>
+<pre><code>## Out-of-sample coverage rate for Boston dataset: 0.9313725</code></pre>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -34,15 +34,15 @@ conformalize <- function(formula = NULL, x = NULL, y = NULL, data = NULL,
   if (!is.null(seed)) set.seed(seed)
 
   # Split the data into two parts
-    if (!is.null(formula)) {
-        if (is.null(data)) stop("Data must be provided when using formula interface.")
-        if (!inherits(data, "data.frame")) stop("Data must be a data frame.")
-    } else if (!is.null(x) && !is.null(y)) {
-        if (is.null(data)) stop("Data must be provided when using matrix interface.")
-        if (!is.matrix(x) || !is.numeric(y)) stop("x must be a numeric matrix and y must be a numeric vector.")
-    } else {
-        stop("Either formula or x and y must be provided.")
-    }
+  if (!is.null(formula)) {
+    if (is.null(data)) stop("Data must be provided when using formula interface.")
+    if (!inherits(data, "data.frame")) stop("Data must be a data frame.")
+  } else if (!is.null(x) && !is.null(y)) {
+    # Remove the incorrect data check for matrix interface
+    if (!is.matrix(x) || !is.numeric(y)) stop("x must be a numeric matrix and y must be a numeric vector.")
+  } else {
+    stop("Either formula or x and y must be provided.")
+  }
 
   n <- if (!is.null(formula)) nrow(data) else nrow(x)
   split_index <- sample(seq_len(n), size = floor(split_ratio * n))  
@@ -141,6 +141,7 @@ predict.conformalize <- function(object, newdata,
   predictions <- predict_func(fit, newdata, ...)
   # Calculate prediction intervals
   method <- match.arg(method)
+  misc::debug_print(object)
   if (method == "splitconformal") {
     # Split conformal prediction intervals
     alpha <- 1 - level

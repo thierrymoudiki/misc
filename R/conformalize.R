@@ -69,8 +69,8 @@ conformalize <- function(formula = NULL, x = NULL, y = NULL, data = NULL,
     stop("Either formula or x and y must be provided.")
   }  
   # Calculate residuals
-  misc::debug_print(cal_pred)
-  misc::debug_print(cal_y)
+  #misc::debug_print(cal_pred)
+  #misc::debug_print(cal_y)
   residuals <- cal_y - cal_pred
   sd_residuals <- sd(residuals)
   scaled_residuals <- mean(residuals)/sd_residuals  

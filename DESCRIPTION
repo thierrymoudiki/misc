@@ -5,8 +5,9 @@ Date: 2025-03-24
 Authors@R: 
     person("T.", "Moudiki", , "thierry.moudiki@gmail.com", role = c("aut", "cre"))
 Description: Miscellaneous Useful R Functions.
-Depends: R (>= 3.5.0), MASS, stats, utils, foreach, doSNOW, snow, parallel, compiler
-Suggests: ranger 
+Depends: R (>= 3.5.0), MASS, stats, utils, foreach, doSNOW, snow
+Suggests: knitr, ranger 
 License: MIT
+VignetteBuilder: knitr
 Encoding: UTF-8
 RoxygenNote: 7.3.0

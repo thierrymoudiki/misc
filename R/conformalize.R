@@ -69,6 +69,8 @@ conformalize <- function(formula = NULL, x = NULL, y = NULL, data = NULL,
     stop("Either formula or x and y must be provided.")
   }  
   # Calculate residuals
+  misc::debug_print(cal_pred)
+  misc::debug_print(cal_y)
   residuals <- cal_y - cal_pred
   sd_residuals <- sd(residuals)
   scaled_residuals <- mean(residuals)/sd_residuals  
@@ -213,4 +215,22 @@ simulate.conformalize <- function(object,
                           nrow = n_preds,
                           ncol = n_sim)
   return(predictions + sim_residuals)
+}
+
+#' Residuals method for conformalize objects
+#' 
+#' This function extracts the residuals from a conformalize object.
+#' 
+#' @param object A conformalize object.
+#' @param ... Additional arguments (not used).
+#' @return A numeric vector of residuals.
+#' @export
+#' 
+residuals.conformalize <- function(object, ...) {
+  # Ensure the object is of class "conformalize"
+  if (!inherits(object, "conformalize")) {
+    stop("The object must be of class 'conformalize'.")
+  }
+  # Return the residuals
+  return(object$residuals)
 }

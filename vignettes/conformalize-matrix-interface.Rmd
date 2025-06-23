@@ -81,6 +81,8 @@ predictions <- predict(
 )
 
 head(predictions)
+
+residuals(conformal_model)
 ```
 
 ### Calculate Out-of-Sample Coverage Rate
@@ -166,6 +168,8 @@ predictions_boston <- predict(
 )
 
 head(predictions_boston)
+
+residuals(conformal_model)
 ```
 
 ### Calculate Out-of-Sample Coverage Rate 1

@@ -110,7 +110,7 @@ plot_prediction_interval <- function(
   # Add legend
   legend_items <- c("Mean prediction", "Prediction interval")
   legend_cols <- c(col_mean, col_ci)
-  if (!is.null(col_future))
+  if (!is.null(x_future))
   {
     legend_items <- c(legend_items, "True future value")
     legend_cols <- c(legend_cols, col_future)

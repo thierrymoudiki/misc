@@ -5,21 +5,20 @@
 \title{Plot Prediction Interval With Optional Past Observations}
 \usage{
 plot_prediction_interval(
-  x = NULL,
   mean_pred,
   lower_pred,
   upper_pred,
   col_past = "black",
   col_mean = "red",
+  col_future = "blue",
   col_ci = rgb(0.8, 0.8, 0.8, 0.5),
   legend_position = "topleft",
+  x_past = NULL,
+  x_future = NULL,
   ...
 )
 }
 \arguments{
-\item{x}{Numeric vector of past observations. If `NULL`, the plot will contain
-only forecasted values. Default is `NULL`.}
-
 \item{mean_pred}{Numeric vector of mean forecasted values. Required.}
 
 \item{lower_pred}{Numeric vector of lower bounds of the prediction interval. Required.}
@@ -30,10 +29,17 @@ only forecasted values. Default is `NULL`.}
 
 \item{col_mean}{Color for the mean forecast line. Default is `"red"`.}
 
+\item{col_future}{Color for true future value. Default is `"blue"`.}
+
 \item{col_ci}{Color for the confidence interval polygon. Default is `rgb(0.8, 0.8, 0.8, 0.5)`.}
 
 \item{legend_position}{Position of the legend. Passed to the `legend()` function.
 Default is `"topleft"`.}
+
+\item{x_past}{Numeric vector of past observations. If `NULL`, the plot will contain
+only forecasted values. Default is `NULL`.}
+
+\item{x_future}{Numeric vector of future observations.}
 
 \item{...}{Additional arguments passed to the `plot()` function.}
 }
@@ -56,8 +62,20 @@ plot_prediction_interval(
 
 # With past observations:
 plot_prediction_interval(
-  x = sin(1:20/6),
+  x_past = sin(1:20/6),
   mean_pred = sin(21:30/6) + 0.1 * (1:10),
+  lower_pred = sin(21:30/6) + 0.1 * (1:10) - 0.3,
+  upper_pred = sin(21:30/6) + 0.1 * (1:10) + 0.3,
+  main = "Forecast With History"
+)
+
+# With past observations:
+set.seed(123)
+mean_pred <- sin(21:30/6) + 0.1 * (1:10)
+plot_prediction_interval(
+  x_past = sin(1:20/6),
+  mean_pred = mean_pred,
+  x_future = mean_pred + runif(length(mean_pred)),
   lower_pred = sin(21:30/6) + 0.1 * (1:10) - 0.3,
   upper_pred = sin(21:30/6) + 0.1 * (1:10) + 0.3,
   main = "Forecast With History"

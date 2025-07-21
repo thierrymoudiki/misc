@@ -1,0 +1,45 @@
+---
+title: "Plot prediction interval"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Plot prediction interval}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, fig.width=7.5}
+ # Without past observations:
+ misc::plot_prediction_interval(
+   mean_pred = sin(1:10/3) + 1,
+   lower_pred = sin(1:10/3) + 1 - 0.5,
+   upper_pred = sin(1:10/3) + 1 + 0.5,
+   main = "Forecast Without History"
+ )
+
+ # With past observations:
+ misc::plot_prediction_interval(
+   x_past = sin(1:20/6),
+   mean_pred = sin(21:30/6) + 0.1 * (1:10),
+   lower_pred = sin(21:30/6) + 0.1 * (1:10) - 0.3,
+   upper_pred = sin(21:30/6) + 0.1 * (1:10) + 0.3,
+   main = "Forecast With History"
+ )
+
+ # With past observations:
+ set.seed(123)
+ mean_pred <- sin(21:30/6) + 0.1 * (1:10)
+ misc::plot_prediction_interval(
+   x_past = sin(1:20/6),
+   mean_pred = mean_pred,
+   x_future = mean_pred + runif(length(mean_pred)),
+   lower_pred = sin(21:30/6) + 0.1 * (1:10) - 0.3,
+   upper_pred = sin(21:30/6) + 0.1 * (1:10) + 0.3,
+   main = "Forecast With History"
+ )
+```
+

@@ -36,3 +36,27 @@ A matrix with predictions and prediction intervals.
 \description{
 This function generates prediction intervals for new data using the fitted conformal model.
 }
+\examples{
+# Define fit and predict functions
+fit_func <- function(formula, data, ...) stats::glm(formula, data = data, ...)
+predict_func <- function(fit, newdata, ...) predict(fit, newdata, ...)
+
+# Apply conformalize using the training data
+conformal_model_boston <- misc::conformalize(
+  formula = medv ~ .,
+  data = train_data,
+  fit_func = fit_func,
+  predict_func = predict_func,
+  seed = 123
+)
+
+# Predict with split conformal method on the test data
+predictions_boston <- predict(
+  conformal_model_boston,
+  newdata = test_data,
+  level = 0.95,
+  method = "split"
+)
+
+head(predictions_boston)
+}

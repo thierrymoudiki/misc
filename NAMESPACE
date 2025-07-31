@@ -1,6 +1,7 @@
 export(KL_divergence_hist)
 export(debug_print)
 export(fit_param_dist)
+export(integrate)
 export(is_package_available)
 export(is_wholenumber)
 export(one_hot_encode)

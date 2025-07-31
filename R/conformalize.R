@@ -96,6 +96,7 @@ conformalize <- function(formula = NULL, x = NULL, y = NULL, data = NULL,
 #' @param ... Additional arguments to pass to the predict function.
 #' @return A matrix with predictions and prediction intervals.
 #' @export
+#' @examples 
 #' # Define fit and predict functions
 #' fit_func <- function(formula, data, ...) stats::glm(formula, data = data, ...)
 #' predict_func <- function(fit, newdata, ...) predict(fit, newdata, ...)

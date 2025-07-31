@@ -52,6 +52,7 @@ optional past observations. The forecast is visualized with a confidence interva
 band and mean prediction line.
 }
 \examples{
+
 # Without past observations:
 plot_prediction_interval(
   mean_pred = sin(1:10/3) + 1,

@@ -23,7 +23,7 @@ In this example, we demonstrate how to use the `conformalize` function to perfor
 
 We will generate a simple dataset for demonstration purposes.
 
-```{r simulate-data}
+```{r simulate-data, eval=TRUE}
 set.seed(123)
 n <- 200
 x <- matrix(runif(n * 2), ncol = 2)
@@ -76,7 +76,7 @@ head(predictions)
 
 The coverage rate is the proportion of true values that fall within the prediction intervals.
 
-```{r calculate-coverage}
+```{r calculate-coverage, eval=TRUE}
 # Simulate true values for the new data
 true_y <- 3 * new_data$x1 + 2 * new_data$x2 + rnorm(50, sd = 0.5)
 

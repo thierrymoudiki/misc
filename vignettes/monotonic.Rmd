@@ -14,14 +14,16 @@ knitr::opts_chunk$set(echo = TRUE)
 # Example usage 1
 
 ```{r, fig.width=7.5}
+library(misc)
+
 # Strict decreasing with SCAM
 x <- 1:5
 y <- c(0.98, 0.99, 0.97, 0.975, 0.8)
 
 # XGBoost with strict post-hoc enforcement
-(result_xgb <- monotonic_regression(x, y, method = "xgboost", monotonicity = 1, strict = TRUE))
+(result_xgb <- misc::monotonic_regression(x, y, method = "xgboost", monotonicity = -1, strict = TRUE))
 
 # LightGBM with default approximate constraints
-(result_lgb <- monotonic_regression(x, y, method = "lightgbm", monotonicity = -1, strict = FALSE))
+#(result_lgb <- misc::monotonic_regression(x, y, method = "lightgbm", monotonicity = -1, strict = FALSE))
 ```
 

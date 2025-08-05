@@ -37,6 +37,8 @@ A matrix with predictions and prediction intervals.
 This function generates prediction intervals for new data using the fitted conformal model.
 }
 \examples{
+
+\dontrun{
 # Define fit and predict functions
 fit_func <- function(formula, data, ...) stats::glm(formula, data = data, ...)
 predict_func <- function(fit, newdata, ...) predict(fit, newdata, ...)
@@ -59,4 +61,5 @@ predictions_boston <- predict(
 )
 
 head(predictions_boston)
+}
 }

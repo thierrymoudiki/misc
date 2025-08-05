@@ -28,3 +28,4 @@ S3method(residuals, conformalize)
 
 importFrom("stats", "model.frame", "model.matrix", "model.response", "terms")
 importFrom("MASS", "ginv")
+importFrom("stats", "simulate")

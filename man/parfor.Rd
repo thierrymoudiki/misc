@@ -2,7 +2,7 @@
 % Please edit documentation in R/parfor.R
 \name{parfor}
 \alias{parfor}
-\title{Sequential or parallel for loop.}
+\title{Sequential or parallel for loop with robust error handling}
 \usage{
 parfor(
   what,
@@ -13,40 +13,62 @@ parfor(
   verbose = FALSE,
   show_progress = TRUE,
   export = NULL,
+  packages = NULL,
+  cl_type = "PSOCK",
+  use_do_call = FALSE,
   ...
 )
 }
 \arguments{
-\item{what}{A function.}
+\item{what}{A function to apply to each element.}
 
-\item{args}{A list of arguments.}
+\item{args}{A vector or list of arguments to iterate over. For functions with multiple
+arguments, provide a list where each element contains the arguments for one call.}
 
-\item{cl}{Number of cores to use. If \code{NULL}, the loop will be sequential. It -1, the number of cores will be detected automatically.}
+\item{cl}{Number of cores to use. If `NULL` (default), runs sequentially.
+If -1, uses all available cores. Positive integers specify exact core count.}
 
-\item{combine}{A function to combine the results.}
+\item{combine}{A function to combine results (default: `c`). Must be a function.}
 
-\item{errorhandling}{A character string specifying how to handle errors. Possible values are \code{"stop"}, \code{"remove"}, and \code{"pass"}.}
+\item{errorhandling}{How to handle errors ("stop", "remove", or "pass").}
 
-\item{verbose}{A logical indicating whether to print progress.}
+\item{verbose}{Logical; if `TRUE`, prints debugging information.}
 
-\item{show_progress}{A logical indicating whether to show a progress bar.}
+\item{show_progress}{Logical; if `TRUE`, shows progress bar.}
 
-\item{export}{A list of objects to export to the workers.}
+\item{export}{Character vector of object names to export to workers (parallel only).}
 
-\item{...}{Additional arguments to pass to \code{what} for \code{\link{foreach::foreach}} (excludind \code{.combine}, \code{.errorhandling}, \code{.options.snow}, \code{.verbose}, and \code{.export}).}
+\item{packages}{Character vector of package names to load on workers (parallel only).}
+
+\item{cl_type}{Cluster type ("PSOCK", "FORK", etc). Default is "PSOCK" for cross-platform compatibility.}
+
+\item{use_do_call}{Logical; if `TRUE`, treats each element of args as a list of arguments 
+to pass via do.call. If `FALSE`, passes each element as a single argument.}
+
+\item{...}{Additional arguments to pass to `what`.}
 }
 \value{
-A list of results.
+Results combined according to `combine` function.
 }
 \description{
-Sequential or parallel for loop.
+A flexible parallel/sequential loop implementation with progress tracking,
+proper argument passing, and comprehensive error handling.
 }
 \examples{
+# Basic usage - single arguments
+parfor(function(x) x^2, 1:10)
 
-# Sequential
-print(misc::parfor(function(x) x^2, 1:10))
+# Parallel with 2 cores
+parfor(function(x) x^2, 1:10, cl = 2)
 
-# Parallel
-print(misc::parfor(function(x) x^2, 1:10, cl = 2))
+# Multiple arguments using do.call style
+args_list <- list(list(x=1, y=2), list(x=3, y=4), list(x=5, y=6))
+parfor(function(x, y) x + y, args_list, use_do_call = TRUE)
 
+# With additional fixed arguments
+parfor(function(x, power) x^power, 1:5, power = 3)
+
+# With error handling
+parfor(function(x) if(x==3) stop("error") else x^2, 1:5, 
+      errorhandling = "remove")
 }

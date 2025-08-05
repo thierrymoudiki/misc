@@ -1,64 +1,27 @@
 ---
-title: "Getting started with parfor"
+title: "Getting started with misc::parfor"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Getting started with parfor}
+  %\VignetteIndexEntry{Getting started with misc::parfor}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-This function is adapted from the excellent `foreach::foreach` package. The difference is: `misc::parfor` calls a function in a loop. Two of the advantages of `misc::parfor` over `foreach::foreach` are: 
-
-- you **don't have to register a parallel backend** before using it. Just specify `cl` to use parallel processing.
-  
-- you can directly **monitor the progress of the parallel computation with a progress bar**.
-   
-
 ```{r}
-library(misc)
-```
-
-```{r}
+# Basic usage - single arguments
 misc::parfor(function(x) x^2, 1:10)
-```
 
-```{r}
+# Parallel with 2 cores
 misc::parfor(function(x) x^2, 1:10, cl = 2)
-```
 
-```{r}
-misc::parfor(function(x) x^2, 1:10, verbose = TRUE)
-```
+# Multiple arguments using do.call style
+args_list <- list(list(x=1, y=2), list(x=3, y=4), list(x=5, y=6))
+misc::parfor(function(x, y) x + y, args_list, use_do_call = TRUE)
 
-```{r}
-misc::parfor(function(x) x^3, 1:10, show_progress = FALSE)
-```
+# With additional fixed arguments
+misc::parfor(function(x, power) x^power, 1:5, power = 3)
 
-```{r}
-misc::parfor(function(x) x^3, 1:10, show_progress = FALSE)
-```
-
-```{r}
-foo <- function(x)
-{
-  print(x)
-  return(x*0.5)
-}
-misc::parfor(foo, 1:10, show_progress = FALSE, 
-verbose = TRUE, combine = rbind)
-```
-
-```{r}
-misc::parfor(foo, 1:10, show_progress = FALSE, 
-verbose = TRUE, combine = cbind)
-```
-
-```{r}
-foo2 <- function(x)
-{
-  print(x)
-  return(x*0.5)
-}
-misc::parfor(foo2, 1:10, show_progress = FALSE, 
-verbose = TRUE, combine = '+')
+# With error handling
+misc::parfor(function(x) if(x==3) stop("error") else x^2, 1:5, 
+      errorhandling = "remove")
 ```

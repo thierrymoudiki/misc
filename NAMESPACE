@@ -1,11 +1,13 @@
 export(KL_divergence_hist)
 export(debug_print)
 export(fit_param_dist)
+export(fit_predict_shap)
 export(integrate)
 export(is_package_available)
 export(is_wholenumber)
 export(one_hot_encode)
 export(parfor)
+export(print_shap_summary)
 export(rm_zero_cols)
 export(scale_matrix)
 export(sort_df)
@@ -29,3 +31,13 @@ S3method(residuals, conformalize)
 importFrom("stats", "model.frame", "model.matrix", "model.response", "terms")
 importFrom("MASS", "ginv")
 importFrom("stats", "simulate")
+importFrom("grDevices", "rgb")
+importFrom("graphics", "abline", "grid", "hist", "legend", "lines",
+            "polygon")
+importFrom("stats", "coef", "cov", "dbeta", "dcauchy", "dchisq",
+            "density", "dexp", "dgamma", "dgeom", "dlnorm", "dlogis",
+            "dnbinom", "dnorm", "dt", "dweibull", "end", "frequency",
+            "predict", "quantile", "rbeta", "rcauchy", "rchisq", "rexp",
+            "rgamma", "rgeom", "rlnorm", "rlogis", "rnbinom", "rnorm",
+            "rt", "rweibull", "sd", "start", "ts", "tsp")
+importFrom("utils", "head")

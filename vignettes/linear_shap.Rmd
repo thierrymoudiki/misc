@@ -1,0 +1,119 @@
+---
+title: "Linear SHAP"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Linear SHAP}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Example usage
+
+```{r, fig.width=7.5}
+library(misc)
+
+# Prepare test data
+data(mtcars)
+set.seed(42)
+train_idx <- sample(nrow(mtcars), 20)
+X_train <- mtcars[train_idx, c("wt", "hp", "qsec")]
+y_train <- mtcars[train_idx, "mpg"]
+X_test <- mtcars[-train_idx, c("wt", "hp", "qsec")]
+y_test <- mtcars[-train_idx, "mpg"]
+
+# Let's manually verify with a simple example
+simple_X <- X_test[1:2, ]
+result_debug <- fit_predict_shap(X_train, y_train, simple_X, 
+                                 model_type = "lm", center_response = FALSE)
+
+cat("Simple example (no response centering):\n")
+cat("Coefficients:", round(coef(result_debug$model), 4), "\n")
+cat("Feature means:", round(result_debug$feature_means, 4), "\n")
+cat("Expected prediction at means:", round(result_debug$base_value, 4), "\n")
+cat("Test data:\n")
+print(simple_X)
+cat("Predictions:", round(result_debug$predictions, 4), "\n")
+cat("Base value:", round(result_debug$base_value, 4), "\n")
+cat("SHAP values:\n")
+print(round(result_debug$shap_values, 4))
+cat("Base + SHAP sum:", round(result_debug$base_value + rowSums(result_debug$shap_values), 4), "\n")
+cat("Residuals:", round(result_debug$validation$residuals, 4), "\n")
+
+# Manual calculation
+coefs <- coef(result_debug$model)
+intercept <- coefs["(Intercept)"]
+slopes <- coefs[names(coefs) != "(Intercept)"]
+manual_pred <- intercept + as.matrix(simple_X) %*% slopes
+manual_base <- intercept + sum(slopes * result_debug$feature_means)
+cat("Manual prediction:", round(as.numeric(manual_pred), 4), "\n")
+cat("Manual base value:", round(as.numeric(manual_base), 4), "\n")
+
+# =============================================================================
+# ORIGINAL EXAMPLE USAGE AND TESTING  
+# =============================================================================
+
+cat("=== Testing Different Model Types ===\n\n")
+
+# Test 1: Standard linear model
+cat("1. Linear Model (lm):\n")
+result_lm <- fit_predict_shap(X_train, y_train, X_test, 
+                              model_type = "lm", center_response = TRUE)
+print_shap_summary(result_lm)
+
+# Debug: Let's manually check the decomposition for lm
+cat("\nManual verification for lm:\n")
+manual_pred <- predict(result_lm$model, newdata = X_test)
+cat("Model predictions:", round(head(manual_pred + result_lm$response_mean), 4), "\n")
+cat("Our predictions:", round(head(result_lm$predictions), 4), "\n")
+cat("Base + sum(SHAP):", round(head(result_lm$base_value + rowSums(result_lm$shap_values)), 4), "\n")
+cat("\n")
+
+# Test 2: Robust linear model with correlations
+cat("2. Robust Linear Model (rlm) with correlations:\n")
+result_rlm <- fit_predict_shap(X_train, y_train, X_test, 
+                               model_type = "rlm", 
+                               account_correlations = TRUE,
+                               n_samples = 50)
+print_shap_summary(result_rlm)
+cat("\n")
+
+# Test 3: Quantile regression
+cat("3. Quantile Regression (rq):\n")
+result_rq <- fit_predict_shap(X_train, y_train, X_test, 
+                              model_type = "rq", tau = 0.5)
+print_shap_summary(result_rq)
+cat("\n")
+
+# Test 4: Elastic net (glmnet)
+cat("4. Elastic Net (glmnet):\n")
+result_glmnet <- fit_predict_shap(X_train, y_train, X_test, 
+                                  model_type = "glmnet", 
+                                  lambda = 0.1, alpha = 0.5)
+print_shap_summary(result_glmnet)
+cat("\n")
+
+# Comparison of interventional vs correlation-aware SHAP
+cat("=== Comparison: Interventional vs Correlation-Aware SHAP ===\n")
+result_interventional <- fit_predict_shap(X_train, y_train, X_test[1:3, ], 
+                                          model_type = "lm", 
+                                          account_correlations = FALSE)
+
+result_corr_aware <- fit_predict_shap(X_train, y_train, X_test[1:3, ], 
+                                      model_type = "lm", 
+                                      account_correlations = TRUE,
+                                      n_samples = 100)
+
+cat("\nInterventional SHAP (first 3 observations):\n")
+print(round(result_interventional$shap_values, 4))
+
+cat("\nCorrelation-aware SHAP (first 3 observations):\n")
+print(round(result_corr_aware$shap_values, 4))
+
+cat("\nDifference (Correlation-aware - Interventional):\n")
+print(round(result_corr_aware$shap_values - result_interventional$shap_values, 4))
+```
+

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Gradient SHAP</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Gradient SHAP</h1>
+
+
+
+<div id="example-usage" class="section level1">
+<h1>Example usage</h1>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(misc)</span></code></pre></div>
+<pre><code>## Loading required package: MASS</code></pre>
+<pre><code>## Loading required package: foreach</code></pre>
+<pre><code>## Loading required package: doSNOW</code></pre>
+<pre><code>## Loading required package: iterators</code></pre>
+<pre><code>## Loading required package: snow</code></pre>
+<pre><code>## 
+## Attaching package: &#39;misc&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:stats&#39;:
+## 
+##     integrate</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Create test functions</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">library</span>(MASS)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co"># 1. Nonlinear function with interactions</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>f_polynomial <span class="ot">&lt;-</span> <span class="cf">function</span>(X) {</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  X <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(X)</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  X[,<span class="dv">1</span>]<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="dv">2</span><span class="sc">*</span>X[,<span class="dv">2</span>] <span class="sc">+</span> <span class="fl">0.5</span><span class="sc">*</span>X[,<span class="dv">1</span>]<span class="sc">*</span>X[,<span class="dv">2</span>] <span class="sc">+</span> <span class="fl">0.1</span><span class="sc">*</span>X[,<span class="dv">3</span>]<span class="sc">^</span><span class="dv">3</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>}</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co"># 2. Neural network-like function</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>f_neural <span class="ot">&lt;-</span> <span class="cf">function</span>(X) {</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>  X <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(X)</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>  <span class="fu">tanh</span>(X[,<span class="dv">1</span>] <span class="sc">+</span> <span class="dv">2</span><span class="sc">*</span>X[,<span class="dv">2</span>]) <span class="sc">+</span> <span class="fu">sin</span>(X[,<span class="dv">3</span>]) <span class="sc">+</span> X[,<span class="dv">1</span>]<span class="sc">*</span>X[,<span class="dv">2</span>]</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>}</span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co"># 3. Exponential function</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>f_exponential <span class="ot">&lt;-</span> <span class="cf">function</span>(X) {</span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a>  X <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(X)</span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a>  <span class="fu">exp</span>(<span class="fl">0.1</span><span class="sc">*</span>X[,<span class="dv">1</span>]) <span class="sc">+</span> <span class="fu">log</span>(<span class="fu">abs</span>(X[,<span class="dv">2</span>]) <span class="sc">+</span> <span class="dv">1</span>) <span class="sc">+</span> <span class="fu">sqrt</span>(<span class="fu">abs</span>(X[,<span class="dv">3</span>]) <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a>}</span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co"># Generate test data</span></span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a>n_train <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a>n_test <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a>X_train <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(n_train <span class="sc">*</span> <span class="dv">3</span>), <span class="at">nrow =</span> n_train, <span class="at">ncol =</span> <span class="dv">3</span>)</span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a><span class="fu">colnames</span>(X_train) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;x1&quot;</span>, <span class="st">&quot;x2&quot;</span>, <span class="st">&quot;x3&quot;</span>)</span>
+<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a></span>
+<span id="cb9-29"><a href="#cb9-29" tabindex="-1"></a>X_test <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(n_test <span class="sc">*</span> <span class="dv">3</span>), <span class="at">nrow =</span> n_test, <span class="at">ncol =</span> <span class="dv">3</span>)</span>
+<span id="cb9-30"><a href="#cb9-30" tabindex="-1"></a><span class="fu">colnames</span>(X_test) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;x1&quot;</span>, <span class="st">&quot;x2&quot;</span>, <span class="st">&quot;x3&quot;</span>)</span>
+<span id="cb9-31"><a href="#cb9-31" tabindex="-1"></a></span>
+<span id="cb9-32"><a href="#cb9-32" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;=== Testing Gradient-Based SHAP Methods ===</span><span class="sc">\n\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## === Testing Gradient-Based SHAP Methods ===</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># Test 1: Polynomial function</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;1. Polynomial Function: x1² + 2x2 + 0.5x1*x2 + 0.1x3³</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## 1. Polynomial Function: x1² + 2x2 + 0.5x1*x2 + 0.1x3³</code></pre>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>result_grad <span class="ot">&lt;-</span> <span class="fu">gradient_shap</span>(f_polynomial, X_train, X_test, <span class="at">h =</span> <span class="fl">1e-4</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Gradient SHAP - Max residual:&quot;</span>, <span class="fu">round</span>(result_grad<span class="sc">$</span>max_residual, <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Gradient SHAP - Max residual: 0.6513</code></pre>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>result_ig <span class="ot">&lt;-</span> <span class="fu">integrated_gradients</span>(f_polynomial, X_train, X_test, <span class="at">n_steps =</span> <span class="dv">20</span>, <span class="at">h =</span> <span class="fl">1e-4</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Integrated Gradients - Max residual:&quot;</span>, <span class="fu">round</span>(result_ig<span class="sc">$</span>max_residual, <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Integrated Gradients - Max residual: 0.0028</code></pre>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>result_lime <span class="ot">&lt;-</span> <span class="fu">local_linear_shap</span>(f_polynomial, X_train, X_test, <span class="at">n_samples =</span> <span class="dv">500</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Local Linear - Max residual:&quot;</span>, <span class="fu">round</span>(result_lime<span class="sc">$</span>max_residual, <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Local Linear - Max residual: 1.0293</code></pre>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Predictions:&quot;</span>, <span class="fu">round</span>(result_grad<span class="sc">$</span>predictions, <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Predictions: -0.1157 1.6824 1.8961 -2.4356 -0.0229</code></pre>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Gradient SHAP attributions:</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Gradient SHAP attributions:</code></pre>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">round</span>(result_grad<span class="sc">$</span>attributions, <span class="dv">4</span>))</span></code></pre></div>
+<pre><code>##          x1      x2      x3
+## [1,] 0.0014  0.0591 -0.0001
+## [2,] 1.2820  1.3563 -0.1293
+## [3,] 0.0037  2.1819 -0.3287
+## [4,] 0.5950 -2.7438 -0.0740
+## [5,] 0.0554  0.1040  0.0617</code></pre>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Integrated Gradients attributions:</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Integrated Gradients attributions:</code></pre>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">round</span>(result_ig<span class="sc">$</span>attributions, <span class="dv">4</span>))</span></code></pre></div>
+<pre><code>##          x1      x2      x3
+## [1,] 0.0003  0.0594  0.0000
+## [2,] 0.6488  1.2526 -0.0448
+## [3,] 0.0019  2.1802 -0.1135
+## [4,] 0.3050 -2.5402 -0.0257
+## [5,] 0.0258  0.1065  0.0208</code></pre>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a><span class="co"># Test 2: Neural network-like function</span></span>
+<span id="cb30-2"><a href="#cb30-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;2. Neural-like Function: tanh(x1 + 2x2) + sin(x3) + x1*x2</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## 2. Neural-like Function: tanh(x1 + 2x2) + sin(x3) + x1*x2</code></pre>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a>result_neural <span class="ot">&lt;-</span> <span class="fu">gradient_shap</span>(f_neural, X_train, X_test)</span>
+<span id="cb32-2"><a href="#cb32-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Max residual:&quot;</span>, <span class="fu">round</span>(result_neural<span class="sc">$</span>max_residual, <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Max residual: 0.6285</code></pre>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;RMSE residual:&quot;</span>, <span class="fu">round</span>(result_neural<span class="sc">$</span>rmse_residual, <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## RMSE residual: 0.3191</code></pre>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Predictions:&quot;</span>, <span class="fu">round</span>(result_neural<span class="sc">$</span>predictions, <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Predictions: -0.1905 0.617 0.1449 -2.4482 0.3483</code></pre>
+<div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Attributions:</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Attributions:</code></pre>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">round</span>(result_neural<span class="sc">$</span>attributions, <span class="dv">4</span>))</span></code></pre></div>
+<pre><code>##           x1      x2      x3
+## [1,] -0.0345  0.0582 -0.0604
+## [2,]  0.4378  0.5692 -0.5431
+## [3,]  0.0069  0.1876 -0.5233
+## [4,] -0.7969 -1.1119 -0.5010
+## [5,] -0.1651  0.0953  0.4973</code></pre>
+<div class="sourceCode" id="cb42"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" tabindex="-1"></a><span class="co"># Test 3: Exponential function</span></span>
+<span id="cb43-2"><a href="#cb43-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;3. Exponential Function: exp(0.1x1) + log(|x2|+1) + sqrt(|x3|+1)</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## 3. Exponential Function: exp(0.1x1) + log(|x2|+1) + sqrt(|x3|+1)</code></pre>
+<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" tabindex="-1"></a>result_exp <span class="ot">&lt;-</span> <span class="fu">gradient_shap</span>(f_exponential, X_train, X_test, <span class="at">baseline_method =</span> <span class="st">&quot;median&quot;</span>)</span>
+<span id="cb45-2"><a href="#cb45-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Max residual:&quot;</span>, <span class="fu">round</span>(result_exp<span class="sc">$</span>max_residual, <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Max residual: 0.2436</code></pre>
+<div class="sourceCode" id="cb47"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Predictions:&quot;</span>, <span class="fu">round</span>(result_exp<span class="sc">$</span>predictions, <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Predictions: 2.0907 2.7989 3.1198 3.1626 2.2781</code></pre>
+<div class="sourceCode" id="cb49"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Attributions:</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Attributions:</code></pre>
+<div class="sourceCode" id="cb51"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">round</span>(result_exp<span class="sc">$</span>attributions, <span class="dv">4</span>))</span></code></pre></div>
+<pre><code>##           x1      x2     x3
+## [1,] -0.0094 -0.0108 0.0223
+## [2,]  0.0723  0.3721 0.2768
+## [3,] -0.0051  0.5330 0.3539
+## [4,]  0.0694  0.5240 0.2373
+## [5,] -0.0233 -0.0346 0.2427</code></pre>
+<div class="sourceCode" id="cb53"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb54"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" tabindex="-1"></a><span class="co"># Comparison of methods for polynomial function</span></span>
+<span id="cb54-2"><a href="#cb54-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;=== Method Comparison (Polynomial Function) ===</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## === Method Comparison (Polynomial Function) ===</code></pre>
+<div class="sourceCode" id="cb56"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;True function: x1² + 2x2 + 0.5x1*x2 + 0.1x3³</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## True function: x1² + 2x2 + 0.5x1*x2 + 0.1x3³</code></pre>
+<div class="sourceCode" id="cb58"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Test point:&quot;</span>, <span class="fu">round</span>(X_test[<span class="dv">1</span>,], <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Test point: -0.0046 -0.0579 -0.071</code></pre>
+<div class="sourceCode" id="cb60"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;True prediction:&quot;</span>, <span class="fu">round</span>(<span class="fu">f_polynomial</span>(X_test[<span class="dv">1</span>,,<span class="at">drop=</span><span class="cn">FALSE</span>]), <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## True prediction: -0.1157</code></pre>
+<div class="sourceCode" id="cb62"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Gradient SHAP attributions:&quot;</span>, <span class="fu">round</span>(result_grad<span class="sc">$</span>attributions[<span class="dv">1</span>,], <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Gradient SHAP attributions: 0.0014 0.0591 -1e-04</code></pre>
+<div class="sourceCode" id="cb64"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Integrated Gradients:&quot;</span>, <span class="fu">round</span>(result_ig<span class="sc">$</span>attributions[<span class="dv">1</span>,], <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Integrated Gradients: 3e-04 0.0594 0</code></pre>
+<div class="sourceCode" id="cb66"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Local Linear:&quot;</span>, <span class="fu">round</span>(result_lime<span class="sc">$</span>attributions[<span class="dv">1</span>,], <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Local Linear: 0.0019 0.0589 -3e-04</code></pre>
+<div class="sourceCode" id="cb68"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Residuals (smaller = better):</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## 
+## Residuals (smaller = better):</code></pre>
+<div class="sourceCode" id="cb70"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Gradient SHAP:&quot;</span>, <span class="fu">round</span>(result_grad<span class="sc">$</span>residuals[<span class="dv">1</span>], <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Gradient SHAP: -8e-04</code></pre>
+<div class="sourceCode" id="cb72"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Integrated Gradients:&quot;</span>, <span class="fu">round</span>(result_ig<span class="sc">$</span>residuals[<span class="dv">1</span>], <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Integrated Gradients: 0</code></pre>
+<div class="sourceCode" id="cb74"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Local Linear:&quot;</span>, <span class="fu">round</span>(result_lime<span class="sc">$</span>residuals[<span class="dv">1</span>], <span class="dv">4</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Local Linear: -0.3858</code></pre>
+<div class="sourceCode" id="cb76"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" tabindex="-1"></a><span class="co"># EXPLICIT DECOMPOSITION VERIFICATION</span></span>
+<span id="cb76-2"><a href="#cb76-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">=== EXPLICIT DECOMPOSITION CHECK ===</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## 
+## === EXPLICIT DECOMPOSITION CHECK ===</code></pre>
+<div class="sourceCode" id="cb78"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;For first test point:</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## For first test point:</code></pre>
+<div class="sourceCode" id="cb80"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" tabindex="-1"></a><span class="co"># Check each method</span></span>
+<span id="cb80-2"><a href="#cb80-2" tabindex="-1"></a>methods <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb80-3"><a href="#cb80-3" tabindex="-1"></a>  <span class="st">&quot;Gradient SHAP&quot;</span> <span class="ot">=</span> result_grad,</span>
+<span id="cb80-4"><a href="#cb80-4" tabindex="-1"></a>  <span class="st">&quot;Integrated Gradients&quot;</span> <span class="ot">=</span> result_ig, </span>
+<span id="cb80-5"><a href="#cb80-5" tabindex="-1"></a>  <span class="st">&quot;Local Linear&quot;</span> <span class="ot">=</span> result_lime</span>
+<span id="cb80-6"><a href="#cb80-6" tabindex="-1"></a>)</span>
+<span id="cb80-7"><a href="#cb80-7" tabindex="-1"></a></span>
+<span id="cb80-8"><a href="#cb80-8" tabindex="-1"></a><span class="cf">for</span> (method_name <span class="cf">in</span> <span class="fu">names</span>(methods)) {</span>
+<span id="cb80-9"><a href="#cb80-9" tabindex="-1"></a>  result <span class="ot">&lt;-</span> methods[[method_name]]</span>
+<span id="cb80-10"><a href="#cb80-10" tabindex="-1"></a>  </span>
+<span id="cb80-11"><a href="#cb80-11" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>, method_name, <span class="st">&quot;:</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="at">sep=</span><span class="st">&quot;&quot;</span>)</span>
+<span id="cb80-12"><a href="#cb80-12" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;  Prediction:&quot;</span>, <span class="fu">round</span>(result<span class="sc">$</span>predictions[<span class="dv">1</span>], <span class="dv">6</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb80-13"><a href="#cb80-13" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;  Base value:&quot;</span>, <span class="fu">round</span>(result<span class="sc">$</span>baseline_prediction, <span class="dv">6</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb80-14"><a href="#cb80-14" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;  Sum of attributions:&quot;</span>, <span class="fu">round</span>(<span class="fu">sum</span>(result<span class="sc">$</span>attributions[<span class="dv">1</span>,]), <span class="dv">6</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb80-15"><a href="#cb80-15" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;  Base + Sum:&quot;</span>, <span class="fu">round</span>(result<span class="sc">$</span>baseline_prediction <span class="sc">+</span> <span class="fu">sum</span>(result<span class="sc">$</span>attributions[<span class="dv">1</span>,]), <span class="dv">6</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb80-16"><a href="#cb80-16" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;  Residual:&quot;</span>, <span class="fu">round</span>(result<span class="sc">$</span>residuals[<span class="dv">1</span>], <span class="dv">6</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb80-17"><a href="#cb80-17" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;  Decomposition valid?&quot;</span>, <span class="fu">abs</span>(result<span class="sc">$</span>residuals[<span class="dv">1</span>]) <span class="sc">&lt;</span> <span class="fl">1e-5</span>, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)  <span class="co"># More reasonable threshold</span></span>
+<span id="cb80-18"><a href="#cb80-18" tabindex="-1"></a>}</span></code></pre></div>
+<pre><code>## 
+## Gradient SHAP:
+##   Prediction: -0.115655 
+##   Base value: -0.175333 
+##   Sum of attributions: 0.060451 
+##   Base + Sum: -0.114882 
+##   Residual: -0.000774 
+##   Decomposition valid? FALSE 
+## 
+## Integrated Gradients:
+##   Prediction: -0.115655 
+##   Base value: -0.175333 
+##   Sum of attributions: 0.059677 
+##   Base + Sum: -0.115656 
+##   Residual: 1e-06 
+##   Decomposition valid? TRUE 
+## 
+## Local Linear:
+##   Prediction: -0.115655 
+##   Base value: 0.209629 
+##   Sum of attributions: 0.060487 
+##   Base + Sum: 0.270116 
+##   Residual: -0.385771 
+##   Decomposition valid? FALSE</code></pre>
+<div class="sourceCode" id="cb82"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" tabindex="-1"></a><span class="co"># Show the mathematical relationship more clearly</span></span>
+<span id="cb82-2"><a href="#cb82-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">=== MATHEMATICAL VERIFICATION ===</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## 
+## === MATHEMATICAL VERIFICATION ===</code></pre>
+<div class="sourceCode" id="cb84"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" tabindex="-1"></a>pred <span class="ot">&lt;-</span> result_ig<span class="sc">$</span>predictions[<span class="dv">1</span>]</span>
+<span id="cb84-2"><a href="#cb84-2" tabindex="-1"></a>base <span class="ot">&lt;-</span> result_ig<span class="sc">$</span>baseline_prediction  </span>
+<span id="cb84-3"><a href="#cb84-3" tabindex="-1"></a>attrs <span class="ot">&lt;-</span> result_ig<span class="sc">$</span>attributions[<span class="dv">1</span>,]</span>
+<span id="cb84-4"><a href="#cb84-4" tabindex="-1"></a></span>
+<span id="cb84-5"><a href="#cb84-5" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Mathematical check for Integrated Gradients:</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Mathematical check for Integrated Gradients:</code></pre>
+<div class="sourceCode" id="cb86"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;prediction =&quot;</span>, <span class="fu">round</span>(pred, <span class="dv">6</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## prediction = -0.115655</code></pre>
+<div class="sourceCode" id="cb88"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;base_value + sum(attributions) =&quot;</span>, <span class="fu">round</span>(base, <span class="dv">6</span>), <span class="st">&quot;+&quot;</span>, <span class="fu">round</span>(<span class="fu">sum</span>(attrs), <span class="dv">6</span>), <span class="st">&quot;=&quot;</span>, <span class="fu">round</span>(base <span class="sc">+</span> <span class="fu">sum</span>(attrs), <span class="dv">6</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## base_value + sum(attributions) = -0.175333 + 0.059677 = -0.115656</code></pre>
+<div class="sourceCode" id="cb90"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Difference =&quot;</span>, <span class="fu">round</span>(<span class="fu">abs</span>(pred <span class="sc">-</span> (base <span class="sc">+</span> <span class="fu">sum</span>(attrs))), <span class="dv">10</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Difference = 5.855e-07</code></pre>
+<div class="sourceCode" id="cb92"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Passes additivity test:&quot;</span>, <span class="fu">abs</span>(pred <span class="sc">-</span> (base <span class="sc">+</span> <span class="fu">sum</span>(attrs))) <span class="sc">&lt;</span> <span class="fl">1e-5</span>, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Passes additivity test: TRUE</code></pre>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

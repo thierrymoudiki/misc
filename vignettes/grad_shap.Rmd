@@ -1,0 +1,139 @@
+---
+title: "Gradient SHAP"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Gradient SHAP}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Example usage
+
+```{r, fig.width=7.5}
+library(misc)
+
+# Create test functions
+library(MASS)
+
+# 1. Nonlinear function with interactions
+f_polynomial <- function(X) {
+  X <- as.matrix(X)
+  X[,1]^2 + 2*X[,2] + 0.5*X[,1]*X[,2] + 0.1*X[,3]^3
+}
+
+# 2. Neural network-like function
+f_neural <- function(X) {
+  X <- as.matrix(X)
+  tanh(X[,1] + 2*X[,2]) + sin(X[,3]) + X[,1]*X[,2]
+}
+
+# 3. Exponential function
+f_exponential <- function(X) {
+  X <- as.matrix(X)
+  exp(0.1*X[,1]) + log(abs(X[,2]) + 1) + sqrt(abs(X[,3]) + 1)
+}
+
+# Generate test data
+set.seed(42)
+n_train <- 100
+n_test <- 5
+X_train <- matrix(rnorm(n_train * 3), nrow = n_train, ncol = 3)
+colnames(X_train) <- c("x1", "x2", "x3")
+
+X_test <- matrix(rnorm(n_test * 3), nrow = n_test, ncol = 3)
+colnames(X_test) <- c("x1", "x2", "x3")
+
+cat("=== Testing Gradient-Based SHAP Methods ===\n\n")
+
+# Test 1: Polynomial function
+cat("1. Polynomial Function: x1² + 2x2 + 0.5x1*x2 + 0.1x3³\n")
+result_grad <- gradient_shap(f_polynomial, X_train, X_test, h = 1e-4)
+cat("Gradient SHAP - Max residual:", round(result_grad$max_residual, 4), "\n")
+
+result_ig <- integrated_gradients(f_polynomial, X_train, X_test, n_steps = 20, h = 1e-4)
+cat("Integrated Gradients - Max residual:", round(result_ig$max_residual, 4), "\n")
+
+result_lime <- local_linear_shap(f_polynomial, X_train, X_test, n_samples = 500)
+cat("Local Linear - Max residual:", round(result_lime$max_residual, 4), "\n")
+
+cat("Predictions:", round(result_grad$predictions, 4), "\n")
+cat("Gradient SHAP attributions:\n")
+print(round(result_grad$attributions, 4))
+cat("Integrated Gradients attributions:\n")
+print(round(result_ig$attributions, 4))
+cat("\n")
+
+# Test 2: Neural network-like function
+cat("2. Neural-like Function: tanh(x1 + 2x2) + sin(x3) + x1*x2\n")
+result_neural <- gradient_shap(f_neural, X_train, X_test)
+cat("Max residual:", round(result_neural$max_residual, 4), "\n")
+cat("RMSE residual:", round(result_neural$rmse_residual, 4), "\n")
+cat("Predictions:", round(result_neural$predictions, 4), "\n")
+cat("Attributions:\n")
+print(round(result_neural$attributions, 4))
+cat("\n")
+
+# Test 3: Exponential function
+cat("3. Exponential Function: exp(0.1x1) + log(|x2|+1) + sqrt(|x3|+1)\n")
+result_exp <- gradient_shap(f_exponential, X_train, X_test, baseline_method = "median")
+cat("Max residual:", round(result_exp$max_residual, 4), "\n")
+cat("Predictions:", round(result_exp$predictions, 4), "\n")
+cat("Attributions:\n")
+print(round(result_exp$attributions, 4))
+cat("\n")
+
+# Comparison of methods for polynomial function
+cat("=== Method Comparison (Polynomial Function) ===\n")
+cat("True function: x1² + 2x2 + 0.5x1*x2 + 0.1x3³\n")
+cat("Test point:", round(X_test[1,], 4), "\n")
+cat("True prediction:", round(f_polynomial(X_test[1,,drop=FALSE]), 4), "\n\n")
+
+cat("Gradient SHAP attributions:", round(result_grad$attributions[1,], 4), "\n")
+cat("Integrated Gradients:", round(result_ig$attributions[1,], 4), "\n")
+cat("Local Linear:", round(result_lime$attributions[1,], 4), "\n")
+
+cat("\nResiduals (smaller = better):\n")
+cat("Gradient SHAP:", round(result_grad$residuals[1], 4), "\n")
+cat("Integrated Gradients:", round(result_ig$residuals[1], 4), "\n")
+cat("Local Linear:", round(result_lime$residuals[1], 4), "\n")
+
+# EXPLICIT DECOMPOSITION VERIFICATION
+cat("\n=== EXPLICIT DECOMPOSITION CHECK ===\n")
+cat("For first test point:\n")
+
+# Check each method
+methods <- list(
+  "Gradient SHAP" = result_grad,
+  "Integrated Gradients" = result_ig, 
+  "Local Linear" = result_lime
+)
+
+for (method_name in names(methods)) {
+  result <- methods[[method_name]]
+  
+  cat("\n", method_name, ":\n", sep="")
+  cat("  Prediction:", round(result$predictions[1], 6), "\n")
+  cat("  Base value:", round(result$baseline_prediction, 6), "\n")
+  cat("  Sum of attributions:", round(sum(result$attributions[1,]), 6), "\n")
+  cat("  Base + Sum:", round(result$baseline_prediction + sum(result$attributions[1,]), 6), "\n")
+  cat("  Residual:", round(result$residuals[1], 6), "\n")
+  cat("  Decomposition valid?", abs(result$residuals[1]) < 1e-5, "\n")  # More reasonable threshold
+}
+
+# Show the mathematical relationship more clearly
+cat("\n=== MATHEMATICAL VERIFICATION ===\n")
+pred <- result_ig$predictions[1]
+base <- result_ig$baseline_prediction  
+attrs <- result_ig$attributions[1,]
+
+cat("Mathematical check for Integrated Gradients:\n")
+cat("prediction =", round(pred, 6), "\n")
+cat("base_value + sum(attributions) =", round(base, 6), "+", round(sum(attrs), 6), "=", round(base + sum(attrs), 6), "\n")
+cat("Difference =", round(abs(pred - (base + sum(attrs))), 10), "\n")
+cat("Passes additivity test:", abs(pred - (base + sum(attrs))) < 1e-5, "\n")
+```
+

@@ -92,8 +92,21 @@ compute_finite_difference_gradients <- function(f, X, h) {
   gradients
 }
 
-#' Integrated Gradients - A more principled gradient-based attribution
-#' This integrates gradients along the path from baseline to input
+#' Integrated Gradients for Model Explanations
+#'
+#' Computes feature attributions using the Integrated Gradients method.
+#' This integrates gradients along the straight-line path from a baseline to each input.
+#'
+#' @param f Function to explain (should accept matrix input, return vector output)
+#' @param X_train Training data (for computing baseline)
+#' @param X_new New observations to explain
+#' @param baseline_method Method for computing baseline: "mean", "median", or "zero"
+#' @param n_steps Number of steps for the integration path (default: 50)
+#' @param h Step size for finite differences (default: 1e-5)
+#' @return List with attributions, integrated gradients, baseline, predictions, and residual diagnostics
+#' @examples
+#' # integrated_gradients(f, X_train, X_new)
+#' @export
 integrated_gradients <- function(f, X_train, X_new, 
                                  baseline_method = "mean", 
                                  n_steps = 50, 

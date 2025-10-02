@@ -1,3 +1,7 @@
+# 2025-10-02
+
+- Fix `parfor`
+
 # 2025-08-13
 
 - `sims_to_forecast_object`

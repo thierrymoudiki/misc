@@ -1,6 +1,9 @@
 # misc
 
-[![misc status badge](https://r-packages.techtonique.net/badges/misc)](https://r-packages.techtonique.net/misc) [![Documentation](https://img.shields.io/badge/documentation-is_here-green)](https://techtonique.github.io/misc/index.html)
+[![Documentation](https://img.shields.io/badge/documentation-is_here-green)](https://techtonique.github.io/misc/index.html)
+![Downloads](https://r-packages.techtonique.net/badges/downloads/last-month/ahead.svg)
+![Total Downloads](https://r-packages.techtonique.net/badges/downloads/grand-total/ahead.svg?color=brightgreen)
+
 
 ## Description
 

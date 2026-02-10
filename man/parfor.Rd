@@ -2,13 +2,13 @@
 % Please edit documentation in R/parfor.R
 \name{parfor}
 \alias{parfor}
-\title{Sequential or parallel for loop with robust error handling}
+\title{Parallel For Loop with Progress Bar}
 \usage{
 parfor(
   what,
   args,
   cl = NULL,
-  combine = c,
+  combine = "list",
   errorhandling = c("stop", "remove", "pass"),
   verbose = FALSE,
   show_progress = TRUE,
@@ -20,55 +20,83 @@ parfor(
 )
 }
 \arguments{
-\item{what}{A function to apply to each element.}
+\item{what}{A function to apply to each element of \code{args}.}
 
-\item{args}{A vector or list of arguments to iterate over. For functions with multiple
-arguments, provide a list where each element contains the arguments for one call.}
+\item{args}{A list of arguments to iterate over. Each element will be passed
+to \code{what}.}
 
-\item{cl}{Number of cores to use. If `NULL` (default), runs sequentially.
-If -1, uses all available cores. Positive integers specify exact core count.}
+\item{cl}{Number of cores to use for parallel execution. \code{NULL} (default)
+for sequential execution, \code{-1} to use all available cores, or a positive
+integer specifying the number of cores.}
 
-\item{combine}{A function to combine results (default: `c`). Must be a function.}
+\item{combine}{Method for combining results. Can be:
+\itemize{
+  \item A string: \code{"list"} (default), \code{"c"}, \code{"cbind"},
+        \code{"rbind"}, or arithmetic operators (\code{"+"}, etc.)
+  \item A function: custom function taking \code{...} arguments
+}}
 
-\item{errorhandling}{How to handle errors ("stop", "remove", or "pass").}
+\item{errorhandling}{How to handle errors. One of:
+\itemize{
+  \item \code{"stop"}: stop execution on first error (default)
+  \item \code{"remove"}: remove failed iterations from results
+  \item \code{"pass"}: return error objects for failed iterations
+}}
 
-\item{verbose}{Logical; if `TRUE`, prints debugging information.}
+\item{verbose}{Logical. If \code{TRUE}, print verbose output from \code{foreach}.}
 
-\item{show_progress}{Logical; if `TRUE`, shows progress bar.}
+\item{show_progress}{Logical. If \code{TRUE} (default), display a progress bar.}
 
-\item{export}{Character vector of object names to export to workers (parallel only).}
+\item{export}{Character vector of variable names to export to parallel workers.}
 
-\item{packages}{Character vector of package names to load on workers (parallel only).}
+\item{packages}{Character vector of package names to load on parallel workers.}
 
-\item{cl_type}{Cluster type ("PSOCK", "FORK", etc). Default is "PSOCK" for cross-platform compatibility.}
+\item{cl_type}{Type of cluster to create. One of \code{"PSOCK"} (default),
+\code{"FORK"}, \code{"MPI"}, or \code{"NWS"}.}
 
-\item{use_do_call}{Logical; if `TRUE`, treats each element of args as a list of arguments 
-to pass via do.call. If `FALSE`, passes each element as a single argument.}
+\item{use_do_call}{Logical. If \code{TRUE}, use \code{do.call} to apply
+\code{what} to arguments. Useful when \code{args} contains lists of arguments.}
 
-\item{...}{Additional arguments to pass to `what`.}
+\item{...}{Additional arguments passed to \code{what}.}
 }
 \value{
-Results combined according to `combine` function.
+Combined results from applying \code{what} to each element of \code{args}.
+  The structure depends on the \code{combine} parameter.
 }
 \description{
-A flexible parallel/sequential loop implementation with progress tracking,
-proper argument passing, and comprehensive error handling.
+Execute a function over a list of arguments in parallel or sequentially,
+with optional progress tracking and flexible result combination.
+}
+\details{
+This function provides a unified interface for sequential and parallel iteration
+with progress tracking. When \code{cl} is \code{NULL}, execution is sequential.
+Otherwise, a parallel cluster is created using the \code{parallel} and
+\code{doSNOW} packages.
+
+The \code{combine} parameter determines how results are aggregated:
+\itemize{
+  \item \code{"list"}: Keep each result as a separate list element (safest default)
+  \item \code{"c"}: Concatenate results with \code{c()}
+  \item \code{"rbind"}/\code{"cbind"}: Bind data frames or matrices by row/column
+  \item Custom function: Provide your own combining logic
+}
 }
 \examples{
-# Basic usage - single arguments
-parfor(function(x) x^2, 1:10)
+# Sequential execution with list output
+parfor(sqrt, list(1, 4, 9, 16))
 
-# Parallel with 2 cores
-parfor(function(x) x^2, 1:10, cl = 2)
+# Parallel execution on 2 cores, combine with c()
+parfor(sqrt, list(1, 4, 9, 16), cl = 2, combine = "c")
 
-# Multiple arguments using do.call style
-args_list <- list(list(x=1, y=2), list(x=3, y=4), list(x=5, y=6))
+# Use do.call for functions expecting multiple arguments
+args_list <- list(list(x = 1, y = 2), list(x = 3, y = 4))
 parfor(function(x, y) x + y, args_list, use_do_call = TRUE)
 
-# With additional fixed arguments
-parfor(function(x, power) x^power, 1:5, power = 3)
+# Custom combine function
+parfor(sqrt, list(1, 4, 9, 16), combine = sum)
 
-# With error handling
-parfor(function(x) if(x==3) stop("error") else x^2, 1:5, 
-      errorhandling = "remove")
+# Combine data frames by row
+parfor(function(x) data.frame(x = x, y = x^2),
+       list(1, 2, 3), combine = "rbind")
+
 }

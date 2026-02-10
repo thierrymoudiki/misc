@@ -13,7 +13,7 @@ integrate(f, a, b, n = 10000, method = "simpson")
 
 \item{b}{Upper bound of integration (numeric, must be > a)}
 
-\item{n}{Number of subdivisions (default = 10000, must be ≥ 2)}
+\item{n}{Number of subdivisions (default = 10000, must be >= 2)}
 
 \item{method}{Integration method: "trapezoidal" or "simpson" (default)}
 }
@@ -21,7 +21,7 @@ integrate(f, a, b, n = 10000, method = "simpson")
 The approximated value of the integral (numeric)
 }
 \description{
-Computes the definite integral of a function using either the trapezoidal rule 
+Computes the definite integral of a function using either the trapezoidal rule
 or Simpson's rule for numerical approximation.
 }
 \examples{

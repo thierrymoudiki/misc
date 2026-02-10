@@ -1,12 +1,12 @@
 Package: misc
 Title: Miscellaneous Useful R Functions
-Version: 0.10.2
+Version: 0.10.3
 Date: 2026-02-10
 Authors@R: 
     person("T.", "Moudiki", , "thierry.moudiki@gmail.com", role = c("aut", "cre"))
 Description: Miscellaneous Useful R Functions.
 Depends: R (>= 3.5.0), MASS, stats, utils, foreach, doSNOW, snow
-Suggests: knitr, ranger, xgboost, lightgbm, scam, survival, quantreg
+Suggests: knitr, ranger, xgboost, lightgbm, scam, survival, quantreg, tseries
 License: MIT
 VignetteBuilder: knitr
 Encoding: UTF-8
